@@ -126,7 +126,7 @@ const table = useTemplateRef('table')
         tr: 'hover:bg-muted cursor-pointer',
       }"
       class="flex-1"
-      @select="e => emit('select-user', e.original)"
+      @select="(e, row) => emit('select-user', row.original)"
     >
       <!-- ID Column -->
       <template #id-cell="{ row }">
