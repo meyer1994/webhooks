@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { TNodes } from '~~/server/db/schema'
 
@@ -18,6 +18,16 @@ export const router = createTRPCRouter({
         })
         .returning()
       return result
+    }),
+
+  list: baseProcedure
+    .query(async ({ ctx }) => {
+      const nodes = await ctx.db
+        .select()
+        .from(TNodes)
+        .orderBy(desc(TNodes.createdAt))
+
+      return nodes
     }),
 
   get: baseProcedure

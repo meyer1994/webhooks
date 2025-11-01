@@ -16,7 +16,7 @@
     "cf:deploy": "pnpm run build && wrangler --cwd .output deploy",
     "cf:types": "wrangler types shared/wrangler.d.ts",
     "cf:dev": "wrangler dev",
-    "cf:migrate": "wrangler d1 migrations apply foca"
+    "cf:migrate": "wrangler d1 migrations apply flower"
   },
   "dependencies": {
     "@nuxt/eslint": "1.9.0",

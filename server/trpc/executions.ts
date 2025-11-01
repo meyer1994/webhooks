@@ -1,10 +1,20 @@
 import { TRPCError } from '@trpc/server'
-import { eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { TExecutions } from '../db/schema'
 import { baseProcedure, createTRPCRouter } from '../utils/trpc'
 
 export const router = createTRPCRouter({
+  list: baseProcedure
+    .query(async ({ ctx }) => {
+      const executions = await ctx.db
+        .select()
+        .from(TExecutions)
+        .orderBy(desc(TExecutions.createdAt))
+
+      return executions
+    }),
+
   start: baseProcedure
     .input(z.object({ nodeId: z.string() }))
     .mutation(async ({ input, ctx }) => {
