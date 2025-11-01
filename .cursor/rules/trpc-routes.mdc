@@ -61,6 +61,18 @@ export const router = createTRPCRouter({
         .returning()
       return result
     }),
+
+  update: baseProcedure
+    .input(z.object({ /* input fields */ }))
+    .mutation(async ({ input, ctx }) => {
+      const db = useDrizzle()
+      const [result] = await db
+        .update(TTable)
+        .set({ /* map your input fields */})
+        .where(/* where conditions */)
+        .returning()
+      return result
+    }),
 })
 ```
 
