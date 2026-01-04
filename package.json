@@ -20,29 +20,31 @@
     "cf:migrate": "wrangler d1 migrations apply flower"
   },
   "dependencies": {
-    "@nuxt/eslint": "1.10.0",
-    "@nuxt/ui": "^4.1.0",
-    "@trpc/client": "^11.7.1",
-    "@trpc/server": "^11.7.1",
-    "@vueuse/core": "^14.0.0",
-    "@vueuse/nuxt": "^14.0.0",
-    "drizzle-orm": "^0.44.7",
-    "nuxt": "^4.2.0",
-    "trpc-nuxt": "^1.2.0",
-    "vue": "^3.5.22",
-    "vue-router": "^4.6.3",
-    "zod": "^4.1.12"
+    "@aws-sdk/client-s3": "^3.962.0",
+    "@aws-sdk/s3-request-presigner": "^3.962.0",
+    "@nuxt/eslint": "1.12.1",
+    "@nuxt/ui": "^4.3.0",
+    "@trpc/client": "^11.8.1",
+    "@trpc/server": "^11.8.1",
+    "@vueuse/core": "^14.1.0",
+    "@vueuse/nuxt": "^14.1.0",
+    "drizzle-orm": "^0.45.1",
+    "nuxt": "^4.2.2",
+    "trpc-nuxt": "^2.0.1",
+    "vue": "^3.5.26",
+    "vue-router": "^4.6.4",
+    "zod": "^4.3.4"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
-    "@types/node": "^24.9.2",
+    "@types/node": "^25.0.3",
     "dotenv-cli": "^11.0.0",
-    "drizzle-kit": "^0.31.6",
-    "eslint": "^9.39.0",
+    "drizzle-kit": "^0.31.8",
+    "eslint": "^9.39.2",
     "nitro-cloudflare-dev": "^0.2.2",
-    "tsx": "^4.20.6",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vue-tsc": "^3.1.2",
-    "wrangler": "^4.45.3"
+    "vue-tsc": "^3.2.1",
+    "wrangler": "^4.54.0"
   }
 }

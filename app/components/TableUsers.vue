@@ -2,7 +2,7 @@
 import type { AppRouterOutputs } from '@@/server/trpc'
 import type { TableColumn } from '@nuxt/ui'
 
-type Item = AppRouterOutputs['users']['list'][number]
+type Item = AppRouterOutputs['users']['list']
 
 type Props = {
   items: Item[]
@@ -85,7 +85,7 @@ const table = useTemplateRef('table')
             ?.getAllColumns()
             .filter((column) => column.getCanHide())
             .map((column) => ({
-              label: (MAP_ID_TO_LABEL[column.id as Keys] ?? column.id),
+              label: (MAP_ID_TO_LABEL[column.id] ?? column.id),
               type: 'checkbox' as const,
               checked: column.getIsVisible(),
               onUpdateChecked: (checked: boolean) =>

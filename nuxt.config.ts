@@ -15,13 +15,16 @@ export default defineNuxtConfig({
     database: {
       url: process.env.DATABASE_URL,
     },
+    aws: {
+      bucket: process.env.NUXT_AWS_BUCKET,
+    }
   },
 
   build: {
     transpile: ['trpc-nuxt'],
   },
 
-  compatibilityDate: '2025-05-15',
+  compatibilityDate: '2026-01-04',
 
   nitro: {
     preset: 'cloudflare_module',
