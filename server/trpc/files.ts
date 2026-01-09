@@ -26,7 +26,7 @@ export const filesRouter = createTRPCRouter({
 
   list: baseProcedure
     .query(async ({ ctx }) => {
-      const keys = await ctx.storage.list()
+      const keys: string[] = await ctx.storage.list()
       return await Promise.all(keys.map(async key => ({
         key,
         url: await ctx.storage.presign(key),

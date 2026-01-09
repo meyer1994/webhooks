@@ -9,7 +9,7 @@ import {
 import { Upload } from '@aws-sdk/lib-storage'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
-export interface IStorage {
+export interface FileStorage {
   /**
    * Get a value from the storage as a stream of bytes
    * @param key - The key to get
@@ -59,7 +59,7 @@ export interface IStorage {
   list: (prefix?: string) => Promise<string[]>
 }
 
-export class S3Storage implements IStorage {
+export class S3Storage implements FileStorage {
   private client: S3Client
   private bucket: string
 

@@ -71,7 +71,7 @@ const onSubmitFile = async (e: File) => {
               console.debug('Downloading file:', e)
             }"
             @delete-file="async (e) => {
-              await $trpc.files.delete.mutate({ key: e.name })
+              await $trpc.files.delete.mutate({ key: e.key })
               await refreshFiles()
             }"
           />

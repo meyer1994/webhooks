@@ -8,9 +8,3 @@ export default defineEventHandler(async (event) => {
   if (!db) db = drizzle(event.context.cloudflare.env.DB, { schema })
   event.context.db = db
 })
-
-declare module 'h3' {
-  interface H3EventContext {
-    db: DrizzleD1Database<typeof schema>
-  }
-}

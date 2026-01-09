@@ -2,6 +2,7 @@ import { initTRPC } from '@trpc/server'
 import type { DrizzleD1Database } from 'drizzle-orm/d1'
 import type { H3Event } from 'h3'
 import type * as schema from '../db/schema'
+import type { FileStorage } from '../utils/storage'
 
 export const createTRPCContext = async (event: H3Event) => {
   /**
@@ -9,7 +10,7 @@ export const createTRPCContext = async (event: H3Event) => {
   */
   type Context = {
     db: DrizzleD1Database<typeof schema>
-    storage: IStorage
+    storage: FileStorage
     event: H3Event
   }
   return { event, db: event.context.db, storage: event.context.storage } satisfies Context

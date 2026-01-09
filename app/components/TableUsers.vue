@@ -2,7 +2,7 @@
 import type { AppRouterOutputs } from '@@/server/trpc'
 import type { TableColumn } from '@nuxt/ui'
 
-type Item = AppRouterOutputs['users']['list']
+type Item = AppRouterOutputs['users']['list'][number]
 
 type Props = {
   items: Item[]
