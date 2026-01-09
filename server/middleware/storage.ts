@@ -1,4 +1,3 @@
-import type { IStorage } from '../utils/storage'
 import { S3Storage } from '../utils/storage'
 
 export default defineEventHandler(async (event) => {

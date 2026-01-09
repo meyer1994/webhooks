@@ -4,9 +4,9 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
-  PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3'
+import { Upload } from '@aws-sdk/lib-storage'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 export interface IStorage {
@@ -65,7 +65,7 @@ export class S3Storage implements IStorage {
 
   constructor(bucket: string) {
     this.bucket = bucket
-    this.client = new S3Client({})
+    this.client = new S3Client({ forcePathStyle: true })
   }
 
   async get(key: string): Promise<ReadableStream<Uint8Array>> {
@@ -79,8 +79,15 @@ export class S3Storage implements IStorage {
   }
 
   async set(key: string, stream: ReadableStream<Uint8Array>): Promise<void> {
-    const command = new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: stream })
-    await this.client.send(command)
+    const upload = new Upload({
+      client: this.client,
+      params: {
+        Bucket: this.bucket,
+        Key: key,
+        Body: stream,
+      },
+    })
+    await upload.done()
   }
 
   async del(key: string): Promise<void> {

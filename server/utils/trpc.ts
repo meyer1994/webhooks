@@ -1,11 +1,18 @@
 import { initTRPC } from '@trpc/server'
+import type { DrizzleD1Database } from 'drizzle-orm/d1'
 import type { H3Event } from 'h3'
+import type * as schema from '../db/schema'
 
 export const createTRPCContext = async (event: H3Event) => {
   /**
   * @see: https://trpc.io/docs/server/context
   */
-  return { event, db: event.context.db, storage: event.context.storage }
+  type Context = {
+    db: DrizzleD1Database<typeof schema>
+    storage: IStorage
+    event: H3Event
+  }
+  return { event, db: event.context.db, storage: event.context.storage } satisfies Context
 }
 
 type Context = Awaited<ReturnType<typeof createTRPCContext>>

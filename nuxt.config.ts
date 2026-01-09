@@ -17,7 +17,7 @@ export default defineNuxtConfig({
     },
     aws: {
       bucket: process.env.NUXT_AWS_BUCKET,
-    }
+    },
   },
 
   build: {
@@ -32,15 +32,6 @@ export default defineNuxtConfig({
     cloudflare: {
       deployConfig: true,
       nodeCompat: true,
-    },
-
-    database: {
-      default: {
-        connector: 'cloudflare-d1',
-        options: {
-          databaseURL: process.env.DATABASE_URL,
-        },
-      },
     },
   },
 

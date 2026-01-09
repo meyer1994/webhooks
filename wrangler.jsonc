@@ -25,8 +25,14 @@
     {
       "binding": "DB",
       "database_name": "flower",
-      "database_id": "3a6f4e41-f93b-45e2-96f5-77e22dd121b5",
+      "database_id": "ced49fa0-2b3e-406b-95a0-56666f8c918e",
       "migrations_dir": "./server/db/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "flower"
     }
   ],
   /**

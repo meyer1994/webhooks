@@ -1,13 +1,23 @@
-import { loggerLink } from '@trpc/client/links/loggerLink'
-import { createTRPCNuxtClient, httpBatchLink } from 'trpc-nuxt/client'
-import type { AppRouter } from '~~/server/trpc'
+import type { AppRouter } from '@@/server/trpc'
+import { isNonJsonSerializable, loggerLink, splitLink } from '@trpc/client'
+import { createTRPCNuxtClient, httpBatchLink, httpLink } from 'trpc-nuxt/client'
 
 export default defineNuxtPlugin(() => {
+  const links = []
+
+  if (import.meta.browser) {
+    links.push(loggerLink())
+  }
+
+  links.push(splitLink({
+    condition: op => isNonJsonSerializable(op.input),
+    true: httpLink({ url: '/api/trpc' }),
+    false: httpBatchLink({ url: '/api/trpc' }),
+  }))
+
   const trpc = createTRPCNuxtClient<AppRouter>({
-    links: [
-      loggerLink(),
-      httpBatchLink({ url: '/api/trpc' }),
-    ],
+    links,
   })
+
   return { provide: { trpc } }
 })

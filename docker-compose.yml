@@ -9,7 +9,7 @@ services:
       - .env
     environment:
       # config for Nuxt
-      - NUXT_AWS_BUCKET=uploads
+      - NUXT_AWS_BUCKET=flower
       # config for AWS SDK
       - AWS_ACCESS_KEY_ID=minioadmin
       - AWS_SECRET_ACCESS_KEY=minioadmin
@@ -30,5 +30,5 @@ services:
       [
         "/bin/sh",
         "-c",
-        "mkdir -p /data/uploads && minio server /data --console-address ':9001'",
+        "mkdir -p /data/flower && minio server /data --console-address ':9001'",
       ]
