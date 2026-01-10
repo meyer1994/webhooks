@@ -3,11 +3,18 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
-  ListObjectsV2Command,
   S3Client,
+  paginateListObjectsV2,
 } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+
+export type FileStorageItem = {
+  key: string
+  size: number
+  etag: string
+  createdAt: string
+}
 
 export interface FileStorage {
   /**
@@ -54,9 +61,16 @@ export interface FileStorage {
   /**
    * List all keys in the storage with an optional prefix
    * @param prefix - Optional prefix to filter keys
-   * @returns Array of keys
+   * @returns Array of file storage items
    */
-  list: (prefix?: string) => Promise<string[]>
+  list: (prefix?: string) => Promise<FileStorageItem[]>
+
+  /**
+   * Get the metadata for a key
+   * @param key - The key to get the metadata for
+   * @returns The metadata for the key
+   */
+  metadata: (key: string) => Promise<Record<string, string>>
 }
 
 export class S3Storage implements FileStorage {
@@ -118,25 +132,32 @@ export class S3Storage implements FileStorage {
     return await getSignedUrl(this.client, command, { expiresIn: 3600 })
   }
 
-  async list(prefix?: string): Promise<string[]> {
-    const keys: string[] = []
-    let continuationToken: string | undefined
+  async metadata(key: string): Promise<Record<string, string>> {
+    const command = new HeadObjectCommand({ Bucket: this.bucket, Key: key })
+    const response = await this.client.send(command)
+    return response.Metadata ?? {}
+  }
 
-    do {
-      const command = new ListObjectsV2Command({
-        Bucket: this.bucket,
-        Prefix: prefix,
-        ContinuationToken: continuationToken,
-      })
+  async list(prefix?: string): Promise<FileStorageItem[]> {
+    const files: FileStorageItem[] = []
+    const paginator = paginateListObjectsV2(
+      { client: this.client },
+      { Bucket: this.bucket, Prefix: prefix },
+    )
 
-      const response = await this.client.send(command)
+    for await (const page of paginator) {
+      for (const item of page.Contents ?? []) {
+        if (item.Key) {
+          files.push({
+            key: item.Key,
+            size: item.Size ?? 0,
+            etag: item.ETag ?? '',
+            createdAt: item.LastModified?.toISOString() ?? '',
+          })
+        }
+      }
+    }
 
-      const contents = response?.Contents ?? []
-      contents.forEach(i => i.Key && keys.push(i.Key))
-
-      continuationToken = response?.NextContinuationToken
-    } while (continuationToken)
-
-    return keys
+    return files
   }
 }

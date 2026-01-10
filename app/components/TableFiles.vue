@@ -16,7 +16,7 @@ const emit = defineEmits<{
   'refresh-table': []
 }>()
 
-type Keys = 'key' | 'actions'
+type Keys = 'key' | 'size' | 'createdAt' | 'actions'
 
 // Table columns
 const columns: TableColumn<Item>[] = [
@@ -24,6 +24,16 @@ const columns: TableColumn<Item>[] = [
     id: 'key' as const,
     accessorKey: 'key',
     header: 'Nome do Arquivo',
+  },
+  {
+    id: 'size' as const,
+    accessorKey: 'size',
+    header: 'Tamanho',
+  },
+  {
+    id: 'createdAt' as const,
+    accessorKey: 'createdAt',
+    header: 'Enviado em',
   },
   {
     id: 'actions' as const,
@@ -37,6 +47,8 @@ const MAP_ID_TO_LABEL: Record<string, string> = columns
 // State for column visibility
 const visible: Ref<Record<Keys, boolean>> = ref({
   key: true,
+  size: true,
+  createdAt: true,
   actions: true,
 })
 
@@ -90,7 +102,6 @@ const table = useTemplateRef('table')
       </UDropdownMenu>
     </div>
 
-    <!-- Table -->
     <UTable
       ref="table"
       v-model:column-visibility="visible"
@@ -109,9 +120,29 @@ const table = useTemplateRef('table')
       class="flex-1"
     >
       <template #key-cell="{ row }">
-        <span class="text-sm">
+        <span class="text-sm font-medium">
           {{ row.original.key || 'N/A' }}
         </span>
+      </template>
+
+      <template #size-cell="{ row }">
+        <FormatBytes
+          :value="row.original.size"
+          class="text-sm text-muted"
+        />
+      </template>
+
+      <template #createdAt-cell="{ row }">
+        <NuxtTime
+          v-if="row.original?.createdAt"
+          :datetime="row.original.createdAt"
+          title
+          class="text-sm text-muted"
+        />
+        <span
+          v-else
+          class="text-sm text-muted"
+        >N/A</span>
       </template>
 
       <!-- Actions Column -->
