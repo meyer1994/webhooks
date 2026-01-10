@@ -10,4 +10,5 @@ export default defineEventHandler(async (event) => {
   )
 
   event.context.vector = vector
+  console.info('[Middleware] Vectorized initialized')
 })

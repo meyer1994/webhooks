@@ -5,6 +5,9 @@ import * as schema from '../db/schema'
 let db: DrizzleD1Database<typeof schema> | null = null
 
 export default defineEventHandler(async (event) => {
-  if (!db) db = drizzle(event.context.cloudflare.env.DB, { schema })
+  if (!db) {
+    db = drizzle(event.context.cloudflare.env.DB, { schema })
+    console.info('[Middleware] DB initialized')
+  }
   event.context.db = db
 })

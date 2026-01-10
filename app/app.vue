@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { AppRouterOutputs } from '~~/server/trpc'
 
+console.info('[App] Application initializing')
+
 const { $trpc } = useNuxtApp()
 const { data: dataUsers, refresh: refreshUsers } = await $trpc.users.list.useQuery()
 const { data: dataFiles, refresh: refreshFiles } = await $trpc.files.list.useQuery()

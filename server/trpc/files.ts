@@ -16,6 +16,7 @@ export const filesRouter = createTRPCRouter({
             .refine(f => f.name.trim().length > 0),
         })))
     .mutation(async ({ input, ctx }) => {
+      console.info(`[tRPC] Creating file: ${input.file.name}`)
       await ctx.storage.set(input.file.name, input.file.stream())
       ctx.event.waitUntil(onFileUpload(input.file.name, ctx))
     }),
@@ -23,6 +24,7 @@ export const filesRouter = createTRPCRouter({
   delete: baseProcedure
     .input(z.object({ key: z.string() }))
     .mutation(async ({ input, ctx }) => {
+      console.info(`[tRPC] Deleting file: ${input.key}`)
       await Promise.all([
         ctx.storage.del(input.key),
         ctx.vector.del(input.key),
@@ -32,6 +34,7 @@ export const filesRouter = createTRPCRouter({
   list: baseProcedure
     .query(async ({ ctx }) => {
       const items = await ctx.storage.list()
+      console.info(`[tRPC] Listing files: ${items.length} items`)
       return await Promise.all(items.map(async item => ({
         ...item,
         url: await ctx.storage.presign(item.key),

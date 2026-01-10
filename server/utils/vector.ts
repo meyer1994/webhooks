@@ -75,6 +75,7 @@ export class CloudflareVectorizeStorage implements VectorStorage {
   }
 
   async set(key: string, metadata?: Record<string, unknown>): Promise<void> {
+    console.debug(`[Vector] Indexing: ${key}`)
     const stream = await this.storage.get(key)
     const reader = stream.getReader()
     const decoder = new TextDecoder()
@@ -87,23 +88,20 @@ export class CloudflareVectorizeStorage implements VectorStorage {
     }
     text += decoder.decode()
 
-    const defaultMetadata = {
-      key,
-      indexedAt: new Date().toISOString(),
-    }
-
     await this.store.addDocuments(
       [
         {
           pageContent: text,
           metadata: {
-            ...defaultMetadata,
             ...metadata,
+            key,
+            indexedAt: new Date().toISOString(),
           },
         },
       ],
       { ids: [key] },
     )
+    console.debug(`[Vector] Indexed: ${key}`)
   }
 
   async get(key: string): Promise<VectorDocument[]> {
@@ -137,9 +135,19 @@ export class CloudflareVectorizeStorage implements VectorStorage {
   }
 
   async search(query: string, options?: VectorSearch): Promise<VectorDocument[]> {
-    const results = await this.store.similaritySearchWithScore(query, 10, {
-      // key: { $gte: options?.prefix },
-    })
+    console.debug(`[Vector] Searching: "${query}"`)
+    const filter: VectorizeVectorMetadataFilter = {}
+
+    if (options?.prefix) {
+      // trick for prefix to work
+      filter.key = {
+        $gte: options.prefix,
+        $lt: `${options.prefix}\uffff`,
+      }
+    }
+
+    const results = await this.store.similaritySearchWithScore(query, 10, filter)
+    console.debug(`[Vector] Searched: "${query}" found ${results.length} results`)
 
     return results.map(([doc, score]) => ({
       pageContent: doc.pageContent,

@@ -8,7 +8,7 @@ export const vectorRouter = createTRPCRouter({
       prefix: z.string().optional(),
     }))
     .query(async ({ input, ctx }) => {
-      console.log('input', input)
+      console.info(`[tRPC] Vector search: "${input.query}" (prefix: ${input.prefix ?? 'none'})`)
       return await ctx.vector.search(input.query, {
         prefix: input.prefix ?? undefined,
       })

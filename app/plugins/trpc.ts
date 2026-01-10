@@ -19,5 +19,7 @@ export default defineNuxtPlugin(() => {
     links,
   })
 
+  console.info('[Plugin] tRPC client initialized')
+
   return { provide: { trpc } }
 })

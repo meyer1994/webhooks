@@ -93,6 +93,7 @@ export class S3Storage implements FileStorage {
   }
 
   async set(key: string, stream: ReadableStream<Uint8Array>): Promise<void> {
+    console.debug(`[Storage] Uploading: ${key}`)
     const upload = new Upload({
       client: this.client,
       params: {
@@ -102,9 +103,11 @@ export class S3Storage implements FileStorage {
       },
     })
     await upload.done()
+    console.debug(`[Storage] Uploaded: ${key}`)
   }
 
   async del(key: string): Promise<void> {
+    console.debug(`[Storage] Deleting: ${key}`)
     const command = new DeleteObjectCommand({ Bucket: this.bucket, Key: key })
     await this.client.send(command)
   }
