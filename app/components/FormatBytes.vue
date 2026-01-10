@@ -13,5 +13,7 @@ const formatted = computed(() => value.value ? formatBytes(value.value) : 'NA')
 </script>
 
 <template>
-  <slot :formatted="formatted" />
+  <slot :formatted="formatted">
+    {{ formatted }}
+  </slot>
 </template>

@@ -4,24 +4,30 @@ import { UseClipboard } from '@vueuse/components'
 const route = useRoute()
 const { $trpc } = useNuxtApp()
 
-const webhookId = ref(route.params.id as string)
-const requestId = ref(route.query.r)
-
-watch(() => route.query.r, n => requestId.value = n)
-watch(() => route.params.id, n => webhookId.value = n as string)
-
 // Fetch requests list
 const { data, refresh } = await useAsyncData(
-  `webhook-${webhookId.value}`,
-  () => $trpc.webhook.list.query({ webhookId: webhookId.value }),
-  { watch: [webhookId], default: () => ({ requests: [] }) },
+  () => `webhook-${route.params.id}`,
+  () => $trpc.webhook.list.query({ webhookId: route.params.id as string }),
+  { watch: [() => route.params.id], default: () => ({ requests: [] }) },
+)
+
+const { data: dataRequest } = await useAsyncData(
+  () => `webhook-request-${route.query.r}`,
+  () => $trpc.webhook.get.query({
+    requestId: route.query.r as string,
+    webhookId: route.params.id as string,
+  }),
+  {
+    immediate: !!route.query.r,
+    watch: [() => route.query.r, () => route.params.id],
+  },
 )
 
 const { pause } = useIntervalFn(() => refresh(), 5_000)
 useTimeoutFn(() => pause(), 8 * 60 * 1_000) // stop polling after 8 minutes
 
 const url = useRequestURL()
-const endpoint = `${url.origin}/api/h/${webhookId.value}`
+const endpoint = `${url.origin}/api/h/${route.params.id}`
 
 const CURL
   = `curl -X POST ${endpoint} \\
@@ -53,7 +59,7 @@ const CURL
           <!-- url -->
           <UseClipboard v-slot="{ copy, copied }">
             <UButton
-              :label="`/h/${webhookId}`"
+              :label="`/h/${route.params.id}`"
               color="neutral"
               variant="outline"
               size="md"
@@ -100,17 +106,26 @@ const CURL
 
         <!-- requests list -->
         <div class="overflow-y-auto">
-          <AppWebhookListItem
+          <ListItemRequest
             v-for="i in data?.requests"
             :key="i.id"
             :request="i"
             class="border-l-4 border-r-8 border-transparent hover:border-l-primary-500 cursor-pointer p-2"
+            @click="$router.replace({ query: { r: i.id } })"
             @delete="async () => {
-              await $trpc.webhook.delete.mutate({ requestId: i.id, webhookId: webhookId })
+              await $trpc.webhook.delete.mutate({ requestId: i.id, webhookId: route.params.id as string })
               await refresh()
             }"
           />
         </div>
+      </div>
+
+      <div class="flex-1">
+        <DetailsRequest
+          v-if="dataRequest"
+          class="p-2"
+          :request="dataRequest"
+        />
       </div>
     </UMain>
   </div>
