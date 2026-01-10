@@ -1,7 +1,4 @@
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server'
-import { filesRouter } from '~~/server/trpc/files'
-import { usersRouter } from '~~/server/trpc/users'
-import { vectorRouter } from '~~/server/trpc/vector'
 import { webhookRouter } from '~~/server/trpc/webhook'
 import { baseProcedure, createTRPCRouter } from '~~/server/utils/trpc'
 
@@ -15,9 +12,6 @@ export const appRouter = createTRPCRouter({
       timestamp: new Date().toISOString(),
     })),
 
-  users: usersRouter,
-  files: filesRouter,
-  vector: vectorRouter,
   webhook: webhookRouter,
 })
 

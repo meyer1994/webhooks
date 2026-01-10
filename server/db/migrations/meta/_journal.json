@@ -15,6 +15,13 @@
       "when": 1768017068764,
       "tag": "0001_acoustic_harry_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1768020274629,
+      "tag": "0002_hesitant_klaw",
+      "breakpoints": true
     }
   ]
 }

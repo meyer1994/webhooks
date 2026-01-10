@@ -1,17 +1,28 @@
-import * as z from 'zod'
-import { eq, and, gt, desc } from 'drizzle-orm'
-import { TWebhooks, TRequests } from '~~/server/db/schema'
-import { baseProcedure, createTRPCRouter } from '~~/server/utils/trpc'
+import { TRPCError } from '@trpc/server'
+import { and, desc, eq, gt } from 'drizzle-orm'
 import { uuidv7 } from 'uuidv7'
+import * as z from 'zod'
+import { TRequests, TWebhooks } from '~~/server/db/schema'
+import { baseProcedure, createTRPCRouter } from '~~/server/utils/trpc'
 
 export const webhookRouter = createTRPCRouter({
   create: baseProcedure.mutation(async ({ ctx }) => {
-    const newId = uuidv7()
-    await ctx.db.insert(TWebhooks).values({
-      id: newId,
-      createdAt: new Date(),
-    })
-    return { id: newId }
+    const config = await ctx.db
+      .insert(TWebhooks)
+      .values({
+        id: uuidv7(),
+        createdAt: new Date(),
+      })
+      .returning()
+      .get()
+
+    if (!config)
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to create webhook',
+      })
+
+    return config
   }),
 
   init: baseProcedure
@@ -23,16 +34,17 @@ export const webhookRouter = createTRPCRouter({
         .where(eq(TWebhooks.id, input.webhookId))
         .get()
 
-      if (!config) {
-        throw new Error('Webhook not found')
-      }
+      if (!config)
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Webhook not found',
+        })
 
       const history = await ctx.db
         .select()
         .from(TRequests)
         .where(eq(TRequests.webhookId, input.webhookId))
         .orderBy(desc(TRequests.id))
-        .limit(20)
 
       return { config, history }
     }),
@@ -46,9 +58,7 @@ export const webhookRouter = createTRPCRouter({
         .where(
           and(
             eq(TRequests.webhookId, input.webhookId),
-            gt(TRequests.id, input.lastId),
-          ),
-        )
+            gt(TRequests.id, input.lastId)))
         .orderBy(desc(TRequests.id))
     }),
 
@@ -61,9 +71,11 @@ export const webhookRouter = createTRPCRouter({
         .where(eq(TRequests.id, input.requestId))
         .get()
 
-      if (!request) {
-        throw new Error('Request not found')
-      }
+      if (!request)
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Request not found',
+        })
 
       return request
     }),

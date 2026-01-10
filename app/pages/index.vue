@@ -1,121 +1,97 @@
 <script setup lang="ts">
-import type { AppRouterOutputs } from '~~/server/trpc'
-
-console.info('[App] Application initializing')
-
 const { $trpc } = useNuxtApp()
-const { data: dataUsers, refresh: refreshUsers } = await $trpc.users.list.useQuery()
-const { data: dataFiles, refresh: refreshFiles } = await $trpc.files.list.useQuery()
+const isCreating = ref(false)
 
-const onSubmitFile = async (e: File) => {
-  const data = new FormData()
-  data.append('file', e)
-  await $trpc.files.create.mutate(data)
-  await refreshFiles()
-}
-
-type ItemSearch = AppRouterOutputs['vector']['search'][number]
-
-const searchResults = ref<ItemSearch[]>([])
-const isSearching = ref(false)
-
-const onSearch = async (e: { query: string, prefix?: string }) => {
-  isSearching.value = true
+async function createWebhook() {
+  isCreating.value = true
   try {
-    const results = await $trpc.vector.search.query(e)
-    searchResults.value = results
+    const result = await $trpc.webhook.create.mutate()
+    await navigateTo(`/w/${result.id}`)
   }
-  finally {
-    isSearching.value = false
+  catch (error) {
+    console.error('Failed to create webhook:', error)
+    isCreating.value = false
   }
 }
 </script>
 
 <template>
-  <UContainer class="p-8">
-    <div class="flex flex-col gap-8">
-      <div class="grid grid-cols-2 gap-4">
-        <UCard class="flex flex-col gap-4">
-          <template #header>
-            <h2 class="text-2xl font-bold">
-              Database
-            </h2>
-          </template>
-
-          <FormUser
-            @submit="async (e) => {
-              await $trpc.users.create.mutate(e)
-              await refreshUsers()
-            }"
+  <div class="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+    <UCard class="w-full max-w-2xl">
+      <template #header>
+        <div class="flex items-center gap-3">
+          <UIcon
+            name="i-lucide-bolt"
+            class="text-primary-500 text-3xl"
           />
-
-          <TableUsers
-            :items="dataUsers || []"
-            @refresh-table="async () => {
-              await refreshUsers()
-            }"
-            @update-user="async (e) => {
-              await $trpc.users.update.mutate(e)
-              await refreshUsers()
-            }"
-            @delete-user="async (e) => {
-              await $trpc.users.delete.mutate(e)
-              await refreshUsers()
-            }"
-            @select-user="async (e) => {
-              await $trpc.users.update.mutate(e)
-              await refreshUsers()
-            }"
-          />
-        </UCard>
-
-        <UCard class="flex flex-col gap-4">
-          <template #header>
-            <h2 class="text-2xl font-bold">
-              Files
-            </h2>
-          </template>
-
-          <FormFile
-            @submit="async (e) => {
-              await onSubmitFile(e)
-            }"
-          />
-
-          <TableFiles
-            :items="dataFiles || []"
-            @refresh-table="async () => {
-              await refreshFiles()
-            }"
-            @download-file="async (e) => {
-              console.debug('Downloading file:', e)
-            }"
-            @delete-file="async (e) => {
-              await $trpc.files.delete.mutate({ key: e.key })
-              await refreshFiles()
-            }"
-          />
-        </UCard>
-      </div>
-
-      <UCard>
-        <template #header>
-          <h2 class="text-2xl font-bold flex items-center gap-2">
-            <UIcon name="i-lucide-brain-circuit" />
-            Vector Search
-          </h2>
-        </template>
-
-        <div class="flex flex-col gap-6">
-          <FormSearch @submit="onSearch" />
-
-          <TableVectors
-            :items="searchResults"
-            :loading="isSearching"
-            @refresh-table="() => searchResults = []"
-          />
+          <div>
+            <h1 class="text-3xl font-bold text-white">
+              Webhook Inspector
+            </h1>
+            <p class="text-gray-400 mt-1">
+              Inspect incoming webhook requests in real-time
+            </p>
+          </div>
         </div>
-      </UCard>
-    </div>
-  </UContainer>
+      </template>
+
+      <div class="space-y-6">
+        <div class="prose prose-invert max-w-none">
+          <p class="text-gray-300">
+            Create a webhook endpoint to capture and inspect incoming HTTP requests.
+            Perfect for debugging, testing, and monitoring webhook integrations.
+          </p>
+        </div>
+
+        <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+          <h3 class="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wide">
+            Features
+          </h3>
+          <ul class="space-y-2 text-gray-300">
+            <li class="flex items-center gap-2">
+              <UIcon
+                name="i-lucide-check"
+                class="text-green-500"
+              />
+              <span>Real-time request monitoring with polling</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <UIcon
+                name="i-lucide-check"
+                class="text-green-500"
+              />
+              <span>Inspect headers, body, and query parameters</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <UIcon
+                name="i-lucide-check"
+                class="text-green-500"
+              />
+              <span>Customizable mock responses</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <UIcon
+                name="i-lucide-check"
+                class="text-green-500"
+              />
+              <span>Time-sortable UUIDv7 identifiers</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="flex justify-center pt-4">
+          <UButton
+            size="xl"
+            color="primary"
+            icon="i-lucide-plus"
+            :loading="isCreating"
+            :disabled="isCreating"
+            @click="createWebhook"
+          >
+            {{ isCreating ? 'Creating...' : 'Create Webhook' }}
+          </UButton>
+        </div>
+      </div>
+    </UCard>
+  </div>
 </template>
