@@ -25,11 +25,11 @@ export interface FileStorage {
   get: (key: string) => Promise<ReadableStream<Uint8Array>>
 
   /**
-   * Set a value in the storage from a stream of bytes
+   * Set a value in the storage from a file
    * @param key - The key to set
-   * @param stream - The stream of bytes to store
+   * @param file - The file to store
    */
-  set: (key: string, stream: ReadableStream<Uint8Array>) => Promise<void>
+  put: (key: string, file: File) => Promise<void>
 
   /**
    * Delete a value from the storage
@@ -92,14 +92,15 @@ export class S3Storage implements FileStorage {
     return response.Body.transformToWebStream()
   }
 
-  async set(key: string, stream: ReadableStream<Uint8Array>): Promise<void> {
+  async put(key: string, file: File): Promise<void> {
     console.debug(`[Storage] Uploading: ${key}`)
     const upload = new Upload({
       client: this.client,
       params: {
         Bucket: this.bucket,
         Key: key,
-        Body: stream,
+        Body: file,
+        ContentType: file.type,
       },
     })
     await upload.done()
@@ -160,6 +161,87 @@ export class S3Storage implements FileStorage {
         }
       }
     }
+
+    return files
+  }
+}
+
+export class R2Storage implements FileStorage {
+  private bucket: R2Bucket
+  private client: S3Client
+  private bucketName: string
+
+  constructor(bucket: R2Bucket, bucketName: string) {
+    this.bucket = bucket
+    this.bucketName = bucketName
+    this.client = new S3Client({ forcePathStyle: true })
+  }
+
+  async get(key: string): Promise<ReadableStream<Uint8Array>> {
+    const obj = await this.bucket.get(key)
+    if (!obj) throw new Error(`Object ${key} not found`)
+    return obj.body
+  }
+
+  async put(key: string, file: File): Promise<void> {
+    console.debug(`[Storage] Uploading: ${key}`)
+    await this.bucket.put(key, file, {
+      httpMetadata: { contentType: file.type },
+    })
+    console.debug(`[Storage] Uploaded: ${key}`)
+  }
+
+  async del(key: string): Promise<void> {
+    console.debug(`[Storage] Deleting: ${key}`)
+    await this.bucket.delete(key)
+  }
+
+  async has(key: string): Promise<boolean> {
+    const obj = await this.bucket.head(key)
+    return obj !== null
+  }
+
+  async copy(from: string, to: string): Promise<void> {
+    const obj = await this.bucket.get(from)
+    if (!obj) throw new Error(`Object ${from} not found`)
+
+    await this.bucket.put(to, obj.body, {
+      httpMetadata: obj.httpMetadata,
+      customMetadata: obj.customMetadata,
+    })
+  }
+
+  async presign(key: string): Promise<string> {
+    const command = new GetObjectCommand({ Bucket: this.bucketName, Key: key })
+    return await getSignedUrl(this.client, command, { expiresIn: 3600 })
+  }
+
+  async metadata(key: string): Promise<Record<string, string>> {
+    const obj = await this.bucket.head(key)
+    return (obj?.customMetadata as Record<string, string>) ?? {}
+  }
+
+  async list(prefix?: string): Promise<FileStorageItem[]> {
+    const files: FileStorageItem[] = []
+    let cursor: string | undefined
+
+    do {
+      const response: R2Objects = await this.bucket.list({
+        prefix,
+        cursor,
+      })
+
+      for (const item of response.objects) {
+        files.push({
+          key: item.key,
+          size: item.size,
+          etag: item.etag,
+          createdAt: item.uploaded.toISOString(),
+        })
+      }
+
+      cursor = response.truncated ? response.cursor : undefined
+    } while (cursor)
 
     return files
   }

@@ -17,7 +17,7 @@ export const filesRouter = createTRPCRouter({
         })))
     .mutation(async ({ input, ctx }) => {
       console.info(`[tRPC] Creating file: ${input.file.name}`)
-      await ctx.storage.set(input.file.name, input.file.stream())
+      await ctx.storage.put(input.file.name, input.file)
       ctx.event.waitUntil(onFileUpload(input.file.name, ctx))
     }),
 

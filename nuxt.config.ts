@@ -24,14 +24,14 @@ export default defineNuxtConfig({
     transpile: ['trpc-nuxt'],
   },
 
-  compatibilityDate: '2026-01-04',
+  compatibilityDate: '2026-01-09',
 
   nitro: {
     preset: 'cloudflare_module',
 
     cloudflare: {
       deployConfig: true,
-      nodeCompat: true,
+      // nodeCompat: true,
     },
   },
 
