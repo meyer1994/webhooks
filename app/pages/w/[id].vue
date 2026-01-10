@@ -36,7 +36,7 @@ const CURL
 </script>
 
 <template>
-  <div class="h-screen flex flex-col">
+  <div class="flex flex-col">
     <!-- Header -->
     <UHeader :ui="{ container: '!mx-0 !px-4 !max-w-full' }">
       <template #left>
@@ -86,9 +86,9 @@ const CURL
       </template>
     </UHeader>
 
-    <UMain class="flex h-screen">
+    <UMain class="flex">
       <!-- left bar -->
-      <div class="flex flex-col gap-2 h-full">
+      <div class="flex flex-col gap-2">
         <!-- title -->
         <div class="p-2 flex items-center justify-between gap-2">
           <h2 class="text-lg font-bold">
@@ -105,7 +105,7 @@ const CURL
         </div>
 
         <!-- requests list -->
-        <div class="overflow-y-auto">
+        <div class="h-full overflow-y-auto">
           <ListItemRequest
             v-for="i in data?.requests"
             :key="i.id"
