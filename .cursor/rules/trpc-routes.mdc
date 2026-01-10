@@ -18,9 +18,9 @@ server/trpc/
 ## Basic Route Template
 
 ```typescript
-import { z } from 'zod'
-import { TUsers } from '../db/schema'
-import { baseProcedure, createTRPCRouter } from '../utils/trpc'
+import { z } from "zod";
+import { TUsers } from "../db/schema";
+import { baseProcedure, createTRPCRouter } from "../utils/trpc";
 
 export const userRouter = createTRPCRouter({
   list: baseProcedure
@@ -30,7 +30,7 @@ export const userRouter = createTRPCRouter({
       return await ctx.db
         .select()
         .from(TUsers)
-        .limit(input.limit ?? 10)
+        .limit(input.limit ?? 10);
     }),
 
   create: baseProcedure
@@ -39,15 +39,16 @@ export const userRouter = createTRPCRouter({
       const [result] = await ctx.db
         .insert(TUsers)
         .values({ name: input.name })
-        .returning()
-      return result
+        .returning();
+      return result;
     }),
-})
+});
 ```
 
 ## Procedures & Context
 
 All procedures have access to the context `ctx`, which includes:
+
 - `ctx.db`: Drizzle database instance.
 - `ctx.storage`: File storage utility.
 - `ctx.vector`: Vector storage utility.
