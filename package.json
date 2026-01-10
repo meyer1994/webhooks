@@ -17,6 +17,7 @@
     "reset": "pnpm clean && rm -rf node_modules  && pnpm install && pnpm run lint && pnpm run typecheck && pnpm run build",
     "db:generate": "dotenv -e .env -- drizzle-kit generate",
     "cf:deploy": "pnpm run build && wrangler --cwd .output deploy",
+    "cf:deploy:systemd": "systemd-run --user --scope -p MemoryMax=4096M pnpm run cf:deploy",
     "cf:types": "wrangler types shared/wrangler.d.ts",
     "cf:dev": "wrangler dev",
     "cf:migrate": "wrangler d1 migrations apply webhooks"

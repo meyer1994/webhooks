@@ -5,13 +5,13 @@ const route = useRoute()
 const { $trpc } = useNuxtApp()
 
 // Fetch requests list
-const { data, refresh } = await useAsyncData(
+const { data, refresh, status } = await useAsyncData(
   () => `webhook-${route.params.id}`,
   () => $trpc.webhook.list.query({ webhookId: route.params.id as string }),
   { watch: [() => route.params.id], default: () => ({ requests: [] }) },
 )
 
-const { data: dataRequest } = await useAsyncData(
+const { data: dataRequest, execute: executeRequest } = await useAsyncData(
   () => `webhook-request-${route.query.r}`,
   () => $trpc.webhook.get.query({
     requestId: route.query.r as string,
@@ -22,6 +22,9 @@ const { data: dataRequest } = await useAsyncData(
     watch: [() => route.query.r, () => route.params.id],
   },
 )
+
+watch(() => route.query.r, () => executeRequest())
+watch(() => route.params.id, () => executeRequest())
 
 const { pause } = useIntervalFn(() => refresh(), 5_000)
 useTimeoutFn(() => pause(), 8 * 60 * 1_000) // stop polling after 8 minutes
@@ -99,6 +102,7 @@ const CURL
             size="sm"
             color="primary"
             variant="ghost"
+            :loading="status === 'pending'"
             icon="i-lucide-refresh-cw"
             @click="() => refresh()"
           />
@@ -111,7 +115,15 @@ const CURL
             :key="i.id"
             :request="i"
             class="border-l-4 border-r-8 border-transparent hover:border-l-primary-500 cursor-pointer p-2"
-            @click="$router.replace({ query: { r: i.id } })"
+            @click="async () => await navigateTo({
+              query: { r: i.id },
+              // if the request is already selected, replace the current route
+              // so the back button works. if there is already a request selected,
+              // replace the current route so the back button still goes back to
+              // the 'no request selected' state. when clicking through requests,
+              // it won't pollute the history with a bunch of urls
+              replace: !!$route.query.r,
+            })"
             @delete="async () => {
               await $trpc.webhook.delete.mutate({ requestId: i.id, webhookId: route.params.id as string })
               await refresh()
