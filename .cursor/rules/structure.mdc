@@ -2,7 +2,7 @@
 alwaysApply: true
 ---
 
-# Bruch Project Structure & Conventions
+# Flower Project Structure & Conventions
 
 This is a Vue 3 + Nuxt 4 + Nuxt UI 4 application with AI/LangChain integration for document processing.
 
