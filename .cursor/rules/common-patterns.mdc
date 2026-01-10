@@ -42,6 +42,32 @@ This rule captures the most frequent coding patterns and conventions used across
 - **Tables**: Use Nuxt UI 4 `UTable`. See [Table Rules](mdc:.cursor/rules/ui-table.mdc).
 - **Colors & Icons**: Use semantic colors and Lucide icons. See [UI Colors](mdc:.cursor/rules/ui-colors.mdc).
 
+### 4. Common Nuxt UI Components
+
+- `<UButton>`: Versatile button for links or actions.
+- `<UInput>`: Text input field for user data entry.
+- `<USelect>`: Dropdown select for choosing from options.
+- `<UCheckbox>`: Toggle between checked and unchecked states.
+- `<UAlert>`: Callout to draw attention to important information.
+- `<UModal>`: Dialog window for focused interaction.
+- `<UCard>`: Container with header, body, and footer sections.
+- `<UTabs>`: Tab panels for organizing content.
+- `<UTooltip>`: Informative popup on element hover.
+- `<UBadge>`: Status or category indicator with short text.
+
+### 5. Common VueUse Functions
+
+- `useMouse()`: Tracks mouse position reactively.
+- `useLocalStorage()`: Synchronizes state with localStorage.
+- `useClipboard()`: Reactive clipboard access (copy/paste).
+- `useDark()`: Reactive dark mode detection and toggle.
+- `useFetch()`: Reactive HTTP requests with state management.
+- `useWindowSize()`: Tracks window dimensions reactively.
+- `useBreakpoints()`: Reactive breakpoints for responsive design.
+- `useEventListener()`: Reactive event listener management.
+- `useIntervalFn()`: Controlled interval execution.
+- `useTimeoutFn()`: Controlled timeout execution.
+
 ## 🔗 tRPC Patterns
 
 - **Client Usage**: Use reactive queries and mutations. See [tRPC Client Guide](mdc:.cursor/rules/trpc-client.mdc).
