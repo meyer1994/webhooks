@@ -1,0 +1,60 @@
+---
+description: Applies common coding patterns and conventions for the Flower project
+alwaysApply: true
+---
+
+# Flower Project Common Patterns & Conventions
+
+This rule captures the most frequent coding patterns and conventions used across the codebase. For more detailed guides, refer to the specific rules linked below.
+
+## 🛠 Tech Stack
+
+- **Frontend**: Nuxt 4, Vue 3 (Composition API), Nuxt UI 4, Tailwind v4
+- **Backend**: tRPC, Drizzle ORM (SQLite/D1), Cloudflare R2 & Vectorize
+- **Language**: TypeScript (Strict mode)
+- See [Project Structure](mdc:.cursor/rules/structure.mdc) for directory layout.
+
+## 🧠 General Principles
+
+- **Assume Happy Path**: Always assume the happy path unless explicitly told otherwise. Avoid defensive programming or complex error handling if not requested, to keep the code simple and readable.
+
+## 🎨 Formatting & Style (ESLint Stylistic)
+
+- **No semicolons**, **Trailing commas**, **Line length**: 100 chars, **Single quotes**.
+
+## 🏗 Frontend Patterns
+
+### 1. Component Structure
+
+- Always use `<script setup lang="ts">`
+- Prefix components by type: `TableUsers.vue`, `FormUser.vue`, `AppShell.vue`
+- Use `useTemplateRef` for accessing DOM or child components.
+
+### 2. Data Fetching & State
+
+- **Fetch at Page Level**: Use `useAsyncData` or `$trpc.*.useQuery()`.
+- **Child Components**: Should be "dumb" (presentational).
+- See [Data Fetching Patterns](mdc:.cursor/rules/ui-pages.mdc) for detailed examples.
+
+### 3. UI Components
+
+- **Forms**: Use Nuxt UI 4 + Zod. See [Form Rules](mdc:.cursor/rules/ui-form.mdc).
+- **Tables**: Use Nuxt UI 4 `UTable`. See [Table Rules](mdc:.cursor/rules/ui-table.mdc).
+- **Colors & Icons**: Use semantic colors and Lucide icons. See [UI Colors](mdc:.cursor/rules/ui-colors.mdc).
+
+## 🔗 tRPC Patterns
+
+- **Client Usage**: Use reactive queries and mutations. See [tRPC Client Guide](mdc:.cursor/rules/trpc-client.mdc).
+- **Server Implementation**: Keep procedures thin; move logic to `server/utils/`. See [tRPC Route Patterns](mdc:.cursor/rules/trpc-routes.mdc).
+
+## 🗄 Backend Patterns
+
+- **Drizzle ORM**: Use `T` prefix for tables and `R` for relations. See [Database Patterns](mdc:.cursor/rules/database.mdc).
+- **Storage & Vector**:
+  - `ctx.storage`: Standardized interface for S3/R2 (`get`, `put`, `del`, `list`).
+  - `ctx.vector`: Interface for semantic search (`set`, `get`, `search`).
+
+## 💡 Pro Tips
+
+- Use `@/` or `~/` for `app/` and `@@/` or `~~/` for root.
+- Use `useToast()` for user notifications.
