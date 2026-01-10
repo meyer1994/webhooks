@@ -21,24 +21,33 @@ export default defineEventHandler(async (event) => {
 
   if (!config) throw createError({ statusCode: 404, message: 'Webhook not found' })
 
+  const id = uuidv7()
+  const url = getRequestURL(event).href
+  const headers = getRequestHeaders(event)
+  const ipAddress = headers['cf-connecting-ip'] || headers['x-forwarded-for'] || undefined
+  const queryParams = getQuery(event)
+  const body = await readRawBody(event, 'utf8')
+  const cfProperties = event.context.cf ? JSON.stringify(event.context.cf) : undefined
+
   event.waitUntil(
     (async (): Promise<void> => {
       try {
-        const id = uuidv7()
         console.log('[DB] Inserting request:', id)
         await db.insert(TRequests).values([{
           id,
           webhookId: params.id,
           method: event.method,
-          url: getRequestURL(event).href,
-          headers: JSON.stringify(getRequestHeaders(event)),
-          queryParams: JSON.stringify(getQuery(event)),
-          body: await readRawBody(event, 'utf8'),
+          url,
+          headers: JSON.stringify(headers),
+          queryParams: JSON.stringify(queryParams),
+          body,
+          ipAddress,
+          cfProperties,
           createdAt: new Date(),
         }])
       }
       catch (error) {
-        console.error('[DB] Error inserting request:', error)
+        console.error(`[DB] Error inserting request: ${id}`, error)
         throw error
       }
     })(),

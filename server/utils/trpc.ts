@@ -2,14 +2,10 @@ import { initTRPC, type AnyRouter } from '@trpc/server'
 import type { DrizzleD1Database } from 'drizzle-orm/d1'
 import type { H3Event } from 'h3'
 import type * as schema from '../db/schema'
-import type { FileStorage } from '../utils/storage'
-import type { VectorStorage } from '../utils/vector'
 
 export type TRPCContext = {
-  db: DrizzleD1Database<typeof schema>
-  storage: FileStorage
-  vector: VectorStorage
   event: H3Event
+  db: DrizzleD1Database<typeof schema>
 }
 
 export const createTRPCContext = async (event: H3Event) => {
@@ -20,8 +16,6 @@ export const createTRPCContext = async (event: H3Event) => {
   return {
     event,
     db: event.context.db,
-    storage: event.context.storage,
-    vector: event.context.vector,
   } satisfies TRPCContext
 }
 

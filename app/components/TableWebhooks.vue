@@ -58,6 +58,8 @@ const visible: Ref<Record<Keys, boolean>> = ref({
   headers: true,
   queryParams: true,
   body: true,
+  ipAddress: true,
+  cfProperties: true,
 })
 
 const table = useTemplateRef('table')

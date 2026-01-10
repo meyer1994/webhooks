@@ -20,6 +20,8 @@ export const TRequests = sqliteTable('requests', {
   headers: text('headers').notNull(),
   queryParams: text('query_params'),
   body: text('body'),
+  ipAddress: text('ip_address'),
+  cfProperties: text('cf_properties'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, table => ({
   webhookIdx: index('idx_webhook_id').on(table.webhookId),

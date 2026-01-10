@@ -22,6 +22,13 @@
       "when": 1768020274629,
       "tag": "0002_hesitant_klaw",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1768023948234,
+      "tag": "0003_lush_exiles",
+      "breakpoints": true
     }
   ]
 }
