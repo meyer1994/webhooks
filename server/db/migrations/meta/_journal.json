@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1762013530509,
-      "tag": "0000_closed_stardust",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1768017068764,
-      "tag": "0001_acoustic_harry_osborn",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1768020274629,
-      "tag": "0002_hesitant_klaw",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1768023948234,
-      "tag": "0003_lush_exiles",
+      "when": 1768061469252,
+      "tag": "0000_perfect_ink",
       "breakpoints": true
     }
   ]

@@ -49,17 +49,21 @@ const MAP_ID_TO_LABEL: Record<string, string> = columns
 
 // State for column visibility
 const visible: Ref<Record<Keys, boolean>> = ref({
-  method: true,
-  createdAt: true,
-  actions: false,
   id: true,
+
+  body: true,
+  cfProperties: true,
+  headers: true,
+  ipAddress: true,
+  method: true,
+  queryParams: true,
   url: true,
   webhookId: true,
-  headers: true,
-  queryParams: true,
-  body: true,
-  ipAddress: true,
-  cfProperties: true,
+
+  createdAt: true,
+  updatedAt: true,
+
+  actions: false,
 })
 
 const table = useTemplateRef('table')
