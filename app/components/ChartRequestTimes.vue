@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { EChartsOption } from 'echarts'
 import * as echarts from 'echarts/core'
 import type { AppRouterOutputs } from '~~/server/trpc'
 
@@ -48,9 +49,8 @@ echarts.registerTransform({
     const interval = config.interval || 'hour'
 
     const groups = new Map<number, { count: number, sum: number, values: number[] }>()
-    const data = params.upstream.cloneRawData()
+    const data = params.upstream.cloneRawData() as Record<string, unknown>[]
 
-    // @ts-expect-error - data is an array
     for (const row of data) {
       const rowObj = row as Record<string, unknown>
       const timestamp = new Date(rowObj[sourceColumn] as string | number | Date)
@@ -87,7 +87,11 @@ echarts.registerTransform({
   },
 })
 
-const option = computed(() => ({
+const option = computed<EChartsOption>(() => ({
+  backgroundColor: 'transparent',
+  textStyle: {
+    color: '#9ca3af', // gray-400
+  },
   dataset: [
     {
       id: 'raw',
@@ -110,6 +114,7 @@ const option = computed(() => ({
   xAxis: {
     type: 'time',
     axisLabel: {
+      color: '#6b7280', // gray-500
       hideOverlap: true,
       formatter: (value: number) => {
         const date = new Date(value)
@@ -131,43 +136,36 @@ const option = computed(() => ({
         return date.toLocaleDateString()
       },
     },
-  },
-  yAxis: { type: 'value' },
-  grid: { top: 8, right: 8, bottom: 8, left: 8, containLabel: true },
-  series: [
-    { type: 'bar', datasetId: 'byTime', encode: { x: 0, y: 1 } },
-  ],
-  tooltip: {
-    trigger: 'axis',
-    axisPointer: { type: 'shadow' },
-    formatter: (params: any) => {
-      const p = params[0]
-      const date = new Date(p.value[0])
-      let dateStr = ''
-      switch (selectedInterval.value) {
-        case 'second':
-          dateStr = date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
-          break
-        case 'minute':
-        case 'hour':
-          dateStr = date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })
-          break
-        case 'day':
-        case 'week':
-          dateStr = date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
-          break
-        case 'month':
-          dateStr = date.toLocaleDateString([], { month: 'long', year: 'numeric' })
-          break
-        case 'year':
-          dateStr = date.getFullYear().toString()
-          break
-        default:
-          dateStr = date.toLocaleDateString()
-      }
-      return `${dateStr}<br/>${p.marker} Requests: <b>${p.value[1]}</b>`
+    axisLine: {
+      lineStyle: {
+        color: '#374151',
+      },
+    },
+    splitLine: {
+      show: false,
     },
   },
+  yAxis: {
+    type: 'value',
+    splitLine: {
+      lineStyle: {
+        color: '#374151',
+        type: 'dashed',
+      },
+    },
+  },
+  grid: { top: 8, right: 8, bottom: 8, left: 8, containLabel: true },
+  series: [
+    {
+      type: 'bar',
+      datasetId: 'byTime',
+      encode: { x: 0, y: 1 },
+      itemStyle: {
+        color: '#8b5cf6', // violet-500
+        borderRadius: [4, 4, 0, 0],
+      },
+    },
+  ],
 }))
 </script>
 
@@ -177,9 +175,9 @@ const option = computed(() => ({
       <USelect
         v-model="selectedInterval"
         :items="intervals"
-        variant="outline"
-        size="sm"
-        class="w-32"
+        variant="none"
+        size="xs"
+        class="w-32 bg-gray-900 border border-gray-800 rounded-md"
       />
     </div>
     <VChart

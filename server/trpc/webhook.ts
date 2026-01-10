@@ -2,17 +2,14 @@ import { TRPCError } from '@trpc/server'
 import { eq } from 'drizzle-orm'
 import { uuidv7 } from 'uuidv7'
 import * as z from 'zod'
-import { TRequests, TWebhooks } from '~~/server/db/schema'
+import { TWebhooks } from '~~/server/db/schema'
 import { baseProcedure, createTRPCRouter } from '~~/server/utils/trpc'
 
 export const webhookRouter = createTRPCRouter({
   create: baseProcedure.mutation(async ({ ctx }) => {
     const config = await ctx.db
       .insert(TWebhooks)
-      .values({
-        id: uuidv7(),
-        createdAt: new Date(),
-      })
+      .values({ id: uuidv7(), createdAt: new Date() })
       .returning()
       .get()
 
@@ -35,10 +32,7 @@ export const webhookRouter = createTRPCRouter({
         where: eq(TWebhooks.id, input.webhookId),
         with: {
           requests: {
-            orderBy: (t, s) => [
-              s.desc(TRequests.id),
-              s.desc(TRequests.createdAt),
-            ],
+            orderBy: (t, s) => [s.desc(t.id), s.desc(t.createdAt)],
             limit: input.limit,
           },
         },
@@ -50,7 +44,17 @@ export const webhookRouter = createTRPCRouter({
           message: 'Webhook not found',
         })
 
-      return config
+      return {
+        ...config,
+        requests: config.requests.map((request) => {
+          return {
+            ...request,
+            headers: JSON.parse(request.headers || '{}') as Record<string, string>,
+            queryParams: JSON.parse(request.queryParams || '{}') as Record<string, string>,
+            cfProperties: JSON.parse(request.cfProperties || '{}') as Record<string, string>,
+          }
+        }),
+      }
     }),
 
   get: baseProcedure
@@ -72,7 +76,12 @@ export const webhookRouter = createTRPCRouter({
           message: 'Request not found',
         })
 
-      return request
+      return {
+        ...request,
+        headers: JSON.parse(request.headers || '{}') as Record<string, string>,
+        queryParams: JSON.parse(request.queryParams || '{}') as Record<string, string>,
+        cfProperties: JSON.parse(request.cfProperties || '{}') as Record<string, string>,
+      }
     }),
 
   update: baseProcedure

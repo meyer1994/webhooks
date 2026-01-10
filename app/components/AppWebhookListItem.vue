@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useTimeAgo } from '@vueuse/core'
 import type { AppRouterOutputs } from '~~/server/trpc'
 
 type Request = AppRouterOutputs['webhook']['list']['requests'][number]
@@ -22,96 +21,76 @@ const bodySize = computed(() => {
   return new Blob([props.request.body]).size
 })
 
-const timeAgo = useTimeAgo(() => new Date(props.request.createdAt))
-
-type BadgeColor
-  = | 'success'
-    | 'error'
-    | 'primary'
-    | 'secondary'
-    | 'info'
-    | 'warning'
-    | 'neutral'
-
-const methodColor = (m: string): BadgeColor => {
-  const map: Record<string, BadgeColor> = {
-    GET: 'success',
-    POST: 'primary',
-    PUT: 'warning',
-    DELETE: 'error',
-    PATCH: 'info',
+const methodColor = (m: string) => {
+  const map: Record<string, string> = {
+    GET: 'text-green-400',
+    POST: 'text-blue-400',
+    PUT: 'text-orange-400',
+    DELETE: 'text-red-400',
+    PATCH: 'text-cyan-400',
   }
-  return map[m] || 'neutral'
+  return map[m] || 'text-gray-400'
 }
 </script>
 
 <template>
   <div
-    class="p-3 cursor-pointer hover:bg-gray-800 transition-colors border-l-4 flex flex-col gap-2"
-    :class="{
-      'bg-gray-800': props.selected,
-      'border-l-primary-500': props.selected,
-    }"
+    class="group relative p-4 cursor-pointer transition-all duration-200 border-l-[3px]"
+    :class="[
+      props.selected
+        ? 'bg-gray-800/80 border-primary-500'
+        : 'bg-transparent border-transparent hover:bg-gray-800/40 hover:border-gray-700',
+    ]"
     @click="emit('select', request)"
   >
-    <!-- header -->
-    <div class="flex justify-between items-center">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-1.5">
       <div class="flex items-center gap-2">
-        <UBadge
-          :color="methodColor(request.method)"
-          variant="subtle"
-          size="xs"
+        <span
+          class="text-xs font-bold font-mono px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700"
+          :class="methodColor(request.method)"
         >
           {{ request.method }}
-        </UBadge>
-        <FormatBytes
-          :value="bodySize"
-          class="text-xs text-gray-500"
-        />
+        </span>
+        <span
+          v-if="bodySize > 0"
+          class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500 font-mono"
+        >
+          <FormatBytes :value="bodySize" />
+        </span>
       </div>
-      <span class="text-xs text-gray-500">
-        {{ timeAgo }}
-      </span>
+      <NuxtTime
+        :datetime="request.createdAt"
+        title
+        class="text-[11px] text-gray-500 font-medium whitespace-nowrap"
+      />
     </div>
 
-    <!-- body -->
-    <div class="text-xs text-gray-400 truncate font-mono flex gap-4 items-center">
-      <span>
-        id:
-        <span class="text-primary-400">
-          {{ request.id.slice(-12) }}
+    <!-- Details -->
+    <div class="flex items-center gap-3 pl-1">
+      <div class="text-[11px] font-mono text-gray-500 truncate flex-1 flex items-center gap-2">
+        <UIcon
+          name="i-lucide-hash"
+          class="w-3 h-3 text-gray-600"
+        />
+        <span class="text-gray-400 group-hover:text-gray-300 transition-colors">
+          {{ request.id.split('-').pop() }}
         </span>
-      </span>
+      </div>
 
-      <span>
-        headers:
-        <span class="text-primary-300">
-          {{
-            (() => {
-              try {
-                const headers = JSON.parse(request.headers || '{}')
-                return Object.keys(headers).length
-              }
-              catch { return 0 }
-            })()
-          }}
-        </span>
-      </span>
-
-      <span>
-        query:
-        <span class="text-primary-300">
-          {{
-            (() => {
-              try {
-                const q = JSON.parse(request.queryParams || '{}')
-                return Object.keys(q).length
-              }
-              catch { return 0 }
-            })()
-          }}
-        </span>
-      </span>
+      <!-- Indicators -->
+      <div class="flex items-center gap-2">
+        <UIcon
+          v-if="Object.keys(request.queryParams).length > 0"
+          name="i-lucide-search"
+          class="w-3 h-3 text-gray-600"
+        />
+        <UIcon
+          v-if="Object.keys(request.headers).length > 0"
+          name="i-lucide-align-justify"
+          class="w-3 h-3 text-gray-600"
+        />
+      </div>
     </div>
   </div>
 </template>

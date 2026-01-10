@@ -36,11 +36,20 @@ This rule captures the most frequent coding patterns and conventions used across
 - **Child Components**: Should be "dumb" (presentational).
 - See [Data Fetching Patterns](mdc:.cursor/rules/ui-pages.mdc) for detailed examples.
 
-### 3. UI Components
+### 3. UI Components & Colors
 
 - **Forms**: Use Nuxt UI 4 + Zod. See [Form Rules](mdc:.cursor/rules/ui-form.mdc).
 - **Tables**: Use Nuxt UI 4 `UTable`. See [Table Rules](mdc:.cursor/rules/ui-table.mdc).
-- **Colors & Icons**: Use semantic colors and Lucide icons. See [UI Colors](mdc:.cursor/rules/ui-colors.mdc).
+- **Icons**: Use Lucide icons (prefixed with `i-lucide-`).
+- **Semantic Colors**: Use Nuxt UI 4 semantic aliases for consistency:
+  - `primary`: Main CTAs, active navigation, brand elements.
+  - `secondary`: Secondary actions, complementary UI elements.
+  - `success`: Positive confirmations, completed states.
+  - `info`: Tooltips, neutral notifications, help text.
+  - `warning`: Pending states, items requiring attention.
+  - `error`: Destructive actions, error messages.
+  - `neutral`: Surfaces, borders, text, and disabled states.
+- See [UI Colors Cheat Sheet](mdc:.cursor/rules/ui-colors.mdc) for theme customization.
 
 ### 4. Common Nuxt UI Components
 

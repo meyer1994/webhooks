@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useClipboard } from '@vueuse/core'
+import { UseClipboard } from '@vueuse/components'
 import type { AppRouterOutputs } from '~~/server/trpc'
 
 type Request = AppRouterOutputs['webhook']['get']
@@ -10,476 +10,287 @@ type Props = {
 
 const props = defineProps<Props>()
 
-const { copy: copyUrl, copied: urlCopied } = useClipboard()
-const { copy: copyHeaders, copied: headersCopied } = useClipboard()
-const { copy: copyQueryParams, copied: queryParamsCopied } = useClipboard()
-const { copy: copyBody, copied: bodyCopied } = useClipboard()
-const { copy: copyCfProperties, copied: cfPropertiesCopied } = useClipboard()
-
-type BadgeColor = 'success' | 'error' | 'primary' | 'secondary' | 'info' | 'warning' | 'neutral'
-
-const methodColor = (m: string): BadgeColor => {
-  const map: Record<string, BadgeColor> = {
-    GET: 'success',
-    POST: 'primary',
-    PUT: 'warning',
-    DELETE: 'error',
-    PATCH: 'info',
-  }
-  return map[m] || 'neutral'
-}
-
-const parsedHeaders = computed(() => {
-  try {
-    return JSON.parse(props.request.headers || '{}')
-  }
-  catch {
-    return {}
-  }
-})
-
-const parsedQueryParams = computed(() => {
-  try {
-    return JSON.parse(props.request.queryParams || '{}')
-  }
-  catch {
-    return {}
-  }
-})
-
-const formattedHeaders = computed(() => {
-  return JSON.stringify(parsedHeaders.value, null, 2)
-})
-
-const formattedQueryParams = computed(() => {
-  return JSON.stringify(parsedQueryParams.value, null, 2)
-})
-
 const formattedBody = computed(() => {
   if (!props.request.body) return ''
-  try {
-    const parsed = JSON.parse(props.request.body)
-    return JSON.stringify(parsed, null, 2)
-  }
-  catch {
-    return props.request.body
-  }
+  if (typeof props.request.body !== 'object') return props.request.body
+  return JSON.stringify(props.request.body, null, 2)
 })
 
 const isBodyJson = computed(() => {
-  if (!props.request.body) return false
-  try {
-    JSON.parse(props.request.body)
-    return true
-  }
-  catch {
-    return false
-  }
+  return props.request.body && typeof props.request.body === 'object'
 })
 
 const bodySize = computed(() => {
   if (!props.request.body) return 0
-  return new Blob([props.request.body]).size
+  const content = typeof props.request.body === 'object'
+    ? JSON.stringify(props.request.body)
+    : props.request.body
+  return new Blob([content]).size
 })
-
-const formattedBodySize = computed(() => {
-  const bytes = bodySize.value
-  if (bytes === 0) return '0B'
-  if (bytes < 1024) return `${bytes}B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
-})
-
-const parsedCfProperties = computed(() => {
-  if (!props.request.cfProperties) return null
-  try {
-    return JSON.parse(props.request.cfProperties)
-  }
-  catch {
-    return null
-  }
-})
-
-const formattedCfProperties = computed(() => {
-  if (!parsedCfProperties.value) return ''
-  return JSON.stringify(parsedCfProperties.value, null, 2)
-})
-
-function copyRequestUrl() {
-  copyUrl(props.request.url)
-}
-
-function copyRequestHeaders() {
-  copyHeaders(formattedHeaders.value)
-}
-
-function copyRequestQueryParams() {
-  copyQueryParams(formattedQueryParams.value)
-}
-
-function copyRequestBody() {
-  copyBody(props.request.body || '')
-}
-
-function copyCfPropertiesData() {
-  copyCfProperties(formattedCfProperties.value)
-}
 </script>
 
 <template>
-  <div class="flex-1 overflow-y-auto bg-gray-950 p-6">
-    <div class="mb-6">
-      <h2 class="text-xl font-bold text-white mb-2">
-        Request Details
-      </h2>
-      <div class="flex items-center gap-2 text-sm text-gray-400">
-        <UBadge
-          :color="methodColor(request.method)"
-          variant="subtle"
+  <div class="flex-1 overflow-y-auto bg-gray-950 p-8">
+    <!-- Header Info -->
+    <div class="mb-8 pb-6 border-b border-gray-800/50">
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <h2 class="text-2xl font-bold text-white mb-2 font-mono tracking-tight">
+            Request Details
+          </h2>
+
+          <div class="flex items-center gap-3 text-sm">
+            <!-- method -->
+            <span
+              class="px-2.5 py-1 rounded-md text-xs font-bold font-mono border"
+              :class="{
+                'text-green-400 bg-green-400/10 border-green-400/20': request.method === 'GET',
+                'text-blue-400 bg-blue-400/10 border-blue-400/20': request.method === 'POST',
+                'text-orange-400 bg-orange-400/10 border-orange-400/20': request.method === 'PUT',
+                'text-red-400 bg-red-400/10 border-red-400/20': request.method === 'DELETE',
+                'text-cyan-400 bg-cyan-400/10 border-cyan-400/20': request.method === 'PATCH',
+                'text-gray-400 bg-gray-400/10 border-gray-400/20': request.method !== 'GET' && request.method !== 'POST' && request.method !== 'PUT' && request.method !== 'DELETE' && request.method !== 'PATCH',
+              }"
+            >
+              {{ request.method }}
+            </span>
+
+            <!-- request id -->
+            <span class="font-mono text-gray-500 text-xs">
+              {{ request.id.split('-').pop() }}
+            </span>
+          </div>
+        </div>
+
+        <div class="flex flex-col items-end">
+          <!-- created at -->
+          <NuxtTime
+            :datetime="request.createdAt"
+            hour="2-digit"
+            minute="2-digit"
+            second="2-digit"
+            class="text-sm font-medium text-gray-300"
+          />
+          <NuxtTime
+            :datetime="request.createdAt"
+            year="numeric"
+            month="2-digit"
+            day="2-digit"
+            class="text-xs text-gray-500"
+          />
+        </div>
+      </div>
+
+      <!-- URL Bar -->
+      <div class="group relative bg-gray-900/50 rounded-lg border border-gray-800 p-3 flex items-center justify-between hover:border-gray-700 transition-colors">
+        <code class="text-sm text-primary-400 font-mono break-all">{{ request.url }}</code>
+        <UseClipboard
+          v-slot="{ copy, copied }"
+          :source="request.url"
         >
-          {{ request.method }}
-        </UBadge>
-        <span class="font-mono text-xs">{{ request.id }}</span>
-        <span class="text-gray-500">
-          • {{ new Date(request.createdAt).toLocaleString() }}
-        </span>
+          <UButton
+            :color="copied ? 'success' : 'neutral'"
+            variant="ghost"
+            size="xs"
+            icon="i-lucide-copy"
+            class="opacity-0 group-hover:opacity-100 transition-opacity"
+            @click="copy()"
+          />
+        </UseClipboard>
       </div>
     </div>
 
-    <div class="space-y-4">
-      <!-- URL Card -->
-      <UCard>
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="font-semibold">
-              URL
-            </h3>
-            <UButton
-              :color="urlCopied ? 'success' : 'neutral'"
-              variant="ghost"
-              size="xs"
-              icon="i-lucide-clipboard"
-              @click="copyRequestUrl"
-            >
-              {{ urlCopied ? 'Copied!' : 'Copy' }}
-            </UButton>
-          </div>
-        </template>
-        <pre class="text-sm font-mono text-gray-300 break-all">{{ request.url }}</pre>
-      </UCard>
-
-      <!-- IP Address & Cloudflare Info Card -->
-      <UCard v-if="request.ipAddress || parsedCfProperties">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="font-semibold">
-              Network & Location
-            </h3>
-            <UButton
-              v-if="parsedCfProperties"
-              :color="cfPropertiesCopied ? 'success' : 'neutral'"
-              variant="ghost"
-              size="xs"
-              icon="i-lucide-clipboard"
-              @click="copyCfPropertiesData"
-            >
-              {{ cfPropertiesCopied ? 'Copied!' : 'Copy CF' }}
-            </UButton>
-          </div>
-        </template>
-        <div class="space-y-3">
-          <!-- IP Address -->
+    <div class="space-y-6">
+      <!-- Network / Geo -->
+      <div
+        v-if="request.ipAddress || Object.keys(request.cfProperties).length > 0"
+        class="grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
+        <div class="bg-gray-900/30 rounded-xl border border-gray-800/50 p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
+            <UIcon name="i-lucide-globe" /> Location
+          </h3>
           <div
-            v-if="request.ipAddress"
-            class="flex items-center gap-2"
-          >
-            <span class="text-sm font-medium text-gray-400 w-24">IP Address:</span>
-            <span class="text-sm font-mono text-gray-300">{{ request.ipAddress }}</span>
-          </div>
-
-          <!-- Geographic Info -->
-          <div
-            v-if="parsedCfProperties"
+            v-if="Object.keys(request.cfProperties).length > 0"
             class="space-y-2"
           >
-            <div
-              v-if="parsedCfProperties.country"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">Country:</span>
-              <UBadge
-                color="info"
-                variant="subtle"
-                size="xs"
-              >
-                {{ parsedCfProperties.country }}
-              </UBadge>
-              <span
-                v-if="parsedCfProperties.city"
-                class="text-sm text-gray-300"
-              >
-                {{ parsedCfProperties.city }}
-              </span>
-            </div>
-            <div
-              v-if="parsedCfProperties.region"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">Region:</span>
-              <span class="text-sm text-gray-300">
-                {{ parsedCfProperties.region }}
-                <span
-                  v-if="parsedCfProperties.regionCode"
-                  class="text-gray-500"
-                >
-                  ({{ parsedCfProperties.regionCode }})
-                </span>
-              </span>
-            </div>
-            <div
-              v-if="parsedCfProperties.continent"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">Continent:</span>
-              <span class="text-sm text-gray-300">{{ parsedCfProperties.continent }}</span>
-            </div>
-            <div
-              v-if="parsedCfProperties.postalCode"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">Postal Code:</span>
-              <span class="text-sm text-gray-300">{{ parsedCfProperties.postalCode }}</span>
-            </div>
-            <div
-              v-if="parsedCfProperties.latitude && parsedCfProperties.longitude"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">Coordinates:</span>
-              <span class="text-sm font-mono text-gray-300">
-                {{ parsedCfProperties.latitude }}, {{ parsedCfProperties.longitude }}
-              </span>
-            </div>
-            <div
-              v-if="parsedCfProperties.timezone"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">Timezone:</span>
-              <span class="text-sm text-gray-300">{{ parsedCfProperties.timezone }}</span>
-            </div>
-            <div
-              v-if="parsedCfProperties.isEUCountry"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">EU Country:</span>
-              <UBadge
-                color="info"
-                variant="subtle"
-                size="xs"
-              >
-                Yes
-              </UBadge>
-            </div>
-
-            <!-- Network Info -->
-            <div
-              v-if="parsedCfProperties.asn"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">ASN:</span>
-              <span class="text-sm font-mono text-gray-300">{{ parsedCfProperties.asn }}</span>
-              <span
-                v-if="parsedCfProperties.asOrganization"
-                class="text-sm text-gray-500"
-              >
-                ({{ parsedCfProperties.asOrganization }})
-              </span>
-            </div>
-            <div
-              v-if="parsedCfProperties.colo"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">Data Center:</span>
-              <span class="text-sm font-mono text-gray-300">{{ parsedCfProperties.colo }}</span>
-            </div>
-            <div
-              v-if="parsedCfProperties.httpProtocol"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">Protocol:</span>
-              <span class="text-sm text-gray-300">{{ parsedCfProperties.httpProtocol }}</span>
-            </div>
-            <div
-              v-if="parsedCfProperties.tlsVersion"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">TLS Version:</span>
-              <span class="text-sm font-mono text-gray-300">{{ parsedCfProperties.tlsVersion }}</span>
-            </div>
-            <div
-              v-if="parsedCfProperties.tlsCipher"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">TLS Cipher:</span>
-              <span class="text-sm font-mono text-gray-300">{{ parsedCfProperties.tlsCipher }}</span>
-            </div>
-            <div
-              v-if="parsedCfProperties.clientTcpRtt"
-              class="flex items-center gap-2"
-            >
-              <span class="text-sm font-medium text-gray-400 w-24">TCP RTT:</span>
-              <span class="text-sm text-gray-300">{{ parsedCfProperties.clientTcpRtt }}ms</span>
-            </div>
-
-            <!-- Bot Management -->
-            <div
-              v-if="parsedCfProperties.botManagement"
-              class="mt-3 pt-3 border-t border-gray-800"
-            >
-              <div class="text-sm font-medium text-gray-400 mb-2">
-                Bot Management
-              </div>
-              <div class="space-y-1">
-                <div
-                  v-if="parsedCfProperties.botManagement.score !== undefined"
-                  class="flex items-center gap-2"
-                >
-                  <span class="text-sm font-medium text-gray-400 w-24">Bot Score:</span>
-                  <UBadge
-                    :color="parsedCfProperties.botManagement.score < 30 ? 'error' : parsedCfProperties.botManagement.score < 70 ? 'warning' : 'success'"
-                    variant="subtle"
-                    size="xs"
-                  >
-                    {{ parsedCfProperties.botManagement.score }}
-                  </UBadge>
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">{{ request.cfProperties.flag || '🌍' }}</span>
+              <div>
+                <div class="text-sm text-white font-medium">
+                  {{ request.cfProperties.city }}, {{ request.cfProperties.country }}
                 </div>
-                <div
-                  v-if="parsedCfProperties.botManagement.verifiedBot"
-                  class="flex items-center gap-2"
-                >
-                  <span class="text-sm font-medium text-gray-400 w-24">Verified Bot:</span>
-                  <UBadge
-                    color="info"
-                    variant="subtle"
-                    size="xs"
-                  >
-                    Yes
-                  </UBadge>
-                </div>
-                <div
-                  v-if="parsedCfProperties.botManagement.corporateProxy"
-                  class="flex items-center gap-2"
-                >
-                  <span class="text-sm font-medium text-gray-400 w-24">Corporate Proxy:</span>
-                  <UBadge
-                    color="info"
-                    variant="subtle"
-                    size="xs"
-                  >
-                    Yes
-                  </UBadge>
-                </div>
-                <div
-                  v-if="parsedCfProperties.botManagement.staticResource"
-                  class="flex items-center gap-2"
-                >
-                  <span class="text-sm font-medium text-gray-400 w-24">Static Resource:</span>
-                  <UBadge
-                    color="info"
-                    variant="subtle"
-                    size="xs"
-                  >
-                    Yes
-                  </UBadge>
+                <div class="text-xs text-gray-500 font-mono">
+                  {{ request.cfProperties.region }}
                 </div>
               </div>
             </div>
-
-            <!-- Full CF Properties JSON (collapsible) -->
-            <details class="mt-3 pt-3 border-t border-gray-800">
-              <summary class="text-sm font-medium text-gray-400 cursor-pointer hover:text-gray-300">
-                View Full CF Properties JSON
-              </summary>
-              <pre class="mt-2 text-xs font-mono text-gray-300 overflow-x-auto">{{ formattedCfProperties }}</pre>
-            </details>
           </div>
         </div>
-      </UCard>
 
-      <!-- Headers Card -->
-      <UCard v-if="request.headers">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="font-semibold">
-              Headers
-            </h3>
-            <UButton
-              :color="headersCopied ? 'success' : 'neutral'"
-              variant="ghost"
-              size="xs"
-              icon="i-lucide-clipboard"
-              @click="copyRequestHeaders"
-            >
-              {{ headersCopied ? 'Copied!' : 'Copy' }}
-            </UButton>
-          </div>
-        </template>
-        <pre class="text-xs font-mono text-gray-300 overflow-x-auto">{{ formattedHeaders }}</pre>
-      </UCard>
-
-      <!-- Query Parameters Card -->
-      <UCard v-if="request.queryParams && Object.keys(parsedQueryParams).length > 0">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="font-semibold">
-              Query Parameters
-            </h3>
-            <UButton
-              :color="queryParamsCopied ? 'success' : 'neutral'"
-              variant="ghost"
-              size="xs"
-              icon="i-lucide-clipboard"
-              @click="copyRequestQueryParams"
-            >
-              {{ queryParamsCopied ? 'Copied!' : 'Copy' }}
-            </UButton>
-          </div>
-        </template>
-        <pre class="text-xs font-mono text-gray-300 overflow-x-auto">{{ formattedQueryParams }}</pre>
-      </UCard>
-
-      <!-- Body Card -->
-      <UCard v-if="request.body">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <h3 class="font-semibold">
-                Body
-              </h3>
-              <UBadge
-                v-if="isBodyJson"
-                color="info"
-                variant="subtle"
-                size="xs"
-              >
-                JSON
-              </UBadge>
-              <span class="text-xs text-gray-500">
-                {{ formattedBodySize }}
-              </span>
+        <div class="bg-gray-900/30 rounded-xl border border-gray-800/50 p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
+            <UIcon name="i-lucide-network" /> Network
+          </h3>
+          <div class="space-y-1">
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">IP</span>
+              <span class="text-gray-300 font-mono">{{ request.ipAddress }}</span>
             </div>
+            <div
+              v-if="request.cfProperties?.asn"
+              class="flex justify-between text-sm"
+            >
+              <span class="text-gray-500">ASN</span>
+              <span class="text-gray-300 font-mono">{{ request.cfProperties.asn }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Headers -->
+      <div class="section-container">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+            Headers
+          </h3>
+          <UseClipboard
+            v-if="request.headers"
+            v-slot="{ copy, copied }"
+            :source="JSON.stringify(request.headers, null, 2)"
+          >
             <UButton
-              :color="bodyCopied ? 'success' : 'neutral'"
+              :color="copied ? 'success' : 'neutral'"
               variant="ghost"
               size="xs"
-              icon="i-lucide-clipboard"
-              @click="copyRequestBody"
+              icon="i-lucide-copy"
+              @click="copy()"
             >
-              {{ bodyCopied ? 'Copied!' : 'Copy' }}
+              Copy JSON
             </UButton>
+          </UseClipboard>
+        </div>
+        <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+          <div class="max-h-60 overflow-y-auto custom-scrollbar">
+            <table class="w-full text-left text-sm font-mono">
+              <tbody>
+                <tr
+                  v-for="(value, key) in request.headers"
+                  :key="key"
+                  class="border-b border-gray-800/50 last:border-0 hover:bg-white/5"
+                >
+                  <td class="py-2 px-4 text-primary-400 w-1/3 align-top border-r border-gray-800/50">
+                    {{ key }}
+                  </td>
+                  <td class="py-2 px-4 text-gray-300 break-all">
+                    {{ value }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </template>
-        <pre class="text-xs font-mono text-gray-300 overflow-x-auto whitespace-pre-wrap">{{ formattedBody }}</pre>
-      </UCard>
+        </div>
+      </div>
+
+      <!-- Query Params -->
+      <div
+        v-if="Object.keys(request.queryParams).length > 0"
+        class="section-container"
+      >
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+            Query Parameters
+          </h3>
+          <UseClipboard
+            v-slot="{ copy, copied }"
+            :source="JSON.stringify(request.queryParams, null, 2)"
+          >
+            <UButton
+              :color="copied ? 'success' : 'neutral'"
+              variant="ghost"
+              size="xs"
+              icon="i-lucide-copy"
+              @click="copy()"
+            >
+              Copy JSON
+            </UButton>
+          </UseClipboard>
+        </div>
+        <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+          <table class="w-full text-left text-sm font-mono">
+            <tbody>
+              <tr
+                v-for="(value, key) in request.queryParams"
+                :key="key"
+                class="border-b border-gray-800/50 last:border-0 hover:bg-white/5"
+              >
+                <td class="py-2 px-4 text-primary-400 w-1/3 align-top border-r border-gray-800/50">
+                  {{ key }}
+                </td>
+                <td class="py-2 px-4 text-gray-300 break-all">
+                  {{ value }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div
+        v-if="request.body"
+        class="section-container"
+      >
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+              Request Body
+            </h3>
+            <FormatBytes
+              class="text-xs px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 font-mono"
+              :value="bodySize"
+            />
+            <span
+              v-if="isBodyJson"
+              class="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono"
+            >JSON</span>
+          </div>
+          <UseClipboard
+            v-slot="{ copy, copied }"
+            :source="request.body || ''"
+          >
+            <UButton
+              :color="copied ? 'success' : 'neutral'"
+              variant="ghost"
+              size="xs"
+              icon="i-lucide-copy"
+              @click="copy()"
+            >
+              Copy Raw
+            </UButton>
+          </UseClipboard>
+        </div>
+        <div class="bg-gray-900 rounded-xl border border-gray-800 p-4 font-mono text-sm text-gray-300 overflow-x-auto">
+          <pre>{{ formattedBody }}</pre>
+        </div>
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+</style>
