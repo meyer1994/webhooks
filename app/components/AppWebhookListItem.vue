@@ -47,14 +47,15 @@ const methodColor = (m: string): BadgeColor => {
 
 <template>
   <div
-    class="p-3 cursor-pointer hover:bg-gray-800 transition-colors border-l-4"
+    class="p-3 cursor-pointer hover:bg-gray-800 transition-colors border-l-4 flex flex-col gap-2"
     :class="{
       'bg-gray-800': props.selected,
       'border-l-primary-500': props.selected,
     }"
     @click="emit('select', request)"
   >
-    <div class="flex justify-between items-center mb-1">
+    <!-- header -->
+    <div class="flex justify-between items-center">
       <div class="flex items-center gap-2">
         <UBadge
           :color="methodColor(request.method)"
@@ -73,11 +74,15 @@ const methodColor = (m: string): BadgeColor => {
       </span>
     </div>
 
+    <!-- body -->
     <div class="text-xs text-gray-400 truncate font-mono flex gap-4 items-center">
       <span>
         id:
-        <span class="text-primary-400">{{ request.id.slice(-8) }}</span>
+        <span class="text-primary-400">
+          {{ request.id.slice(-12) }}
+        </span>
       </span>
+
       <span>
         headers:
         <span class="text-primary-300">
@@ -92,6 +97,7 @@ const methodColor = (m: string): BadgeColor => {
           }}
         </span>
       </span>
+
       <span>
         query:
         <span class="text-primary-300">

@@ -4,26 +4,38 @@ import type { AppRouterOutputs } from '~~/server/trpc'
 
 type Request = AppRouterOutputs['webhook']['list']['requests'][number]
 
+type Interval = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+type Method = 'count' | 'sum' | 'avg'
+
 type Props = {
   items: Request[]
-  sourceColumn?: string
+  sourceColumn?: keyof Request
   resultColumn?: string
-  method?: 'count' | 'sum' | 'avg'
-  interval?: 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+  method?: Method
 }
 
 const props = withDefaults(defineProps<Props>(), {
   sourceColumn: 'createdAt',
   resultColumn: 'count',
   method: 'count',
-  interval: 'hour',
 })
 
+const intervals: Array<{ label: string, value: Interval }> = [
+  { label: 'Second', value: 'second' },
+  { label: 'Minute', value: 'minute' },
+  { label: 'Hour', value: 'hour' },
+  { label: 'Day', value: 'day' },
+  { label: 'Week', value: 'week' },
+  { label: 'Month', value: 'month' },
+  { label: 'Year', value: 'year' },
+]
+const selectedInterval = ref<Interval>('hour')
+
 type GroupByTimeConfig = {
-  sourceColumn?: string
-  resultColumn?: string
-  method?: 'count' | 'sum' | 'avg'
-  interval?: 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+  sourceColumn?: keyof Request
+  resultColumn?: keyof Request
+  method?: Method
+  interval?: Interval
 }
 
 echarts.registerTransform({
@@ -90,23 +102,86 @@ const option = computed(() => ({
           sourceColumn: 'createdAt',
           resultColumn: 'count',
           method: 'count',
-          interval: 'second',
+          interval: selectedInterval.value,
         },
       },
     },
   ],
-  xAxis: { type: 'time' },
+  xAxis: {
+    type: 'time',
+    axisLabel: {
+      hideOverlap: true,
+      formatter: (value: number) => {
+        const date = new Date(value)
+        const interval = selectedInterval.value
+        if (interval === 'second')
+          return date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        else if (interval === 'minute')
+          return date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })
+        else if (interval === 'hour')
+          return date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })
+        else if (interval === 'day')
+          return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+        else if (interval === 'week')
+          return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+        else if (interval === 'month')
+          return date.toLocaleDateString([], { month: 'short', year: '2-digit' })
+        else if (interval === 'year')
+          return date.getFullYear().toString()
+        return date.toLocaleDateString()
+      },
+    },
+  },
   yAxis: { type: 'value' },
   grid: { top: 8, right: 8, bottom: 8, left: 8, containLabel: true },
   series: [
     { type: 'bar', datasetId: 'byTime', encode: { x: 0, y: 1 } },
   ],
-  tooltip: { trigger: 'axis' },
+  tooltip: {
+    trigger: 'axis',
+    axisPointer: { type: 'shadow' },
+    formatter: (params: any) => {
+      const p = params[0]
+      const date = new Date(p.value[0])
+      let dateStr = ''
+      switch (selectedInterval.value) {
+        case 'second':
+          dateStr = date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          break
+        case 'minute':
+        case 'hour':
+          dateStr = date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })
+          break
+        case 'day':
+        case 'week':
+          dateStr = date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+          break
+        case 'month':
+          dateStr = date.toLocaleDateString([], { month: 'long', year: 'numeric' })
+          break
+        case 'year':
+          dateStr = date.getFullYear().toString()
+          break
+        default:
+          dateStr = date.toLocaleDateString()
+      }
+      return `${dateStr}<br/>${p.marker} Requests: <b>${p.value[1]}</b>`
+    },
+  },
 }))
 </script>
 
 <template>
-  <div class="w-full">
+  <div class="w-full flex flex-col gap-2">
+    <div class="flex justify-end">
+      <USelect
+        v-model="selectedInterval"
+        :items="intervals"
+        variant="outline"
+        size="sm"
+        class="w-32"
+      />
+    </div>
     <VChart
       class="chart"
       :option="option"
