@@ -133,21 +133,39 @@ const CURL
       </div>
 
       <!-- Right Side: Request Details -->
-      <AppWebhookRequestView
-        v-if="selectedRequest"
-        :request="selectedRequest"
-      />
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Request Timeline Chart -->
+        <div
+          v-if="data.requests && data.requests.length > 0"
+          class="p-6 border-b border-gray-800"
+        >
+          <UCard>
+            <template #header>
+              <h3 class="font-semibold">
+                Request Timeline
+              </h3>
+            </template>
+            <ChartRequestTimes :items="data.requests" />
+          </UCard>
+        </div>
 
-      <div
-        v-else
-        class="flex-1 flex items-center justify-center text-gray-500"
-      >
-        <div class="text-center">
-          <UIcon
-            name="i-lucide-wand-sparkles"
-            class="text-4xl mb-2"
-          />
-          <p>Select a request to view details</p>
+        <!-- Request Details -->
+        <AppWebhookRequestView
+          v-if="selectedRequest"
+          :request="selectedRequest"
+        />
+
+        <div
+          v-else
+          class="flex-1 flex items-center justify-center text-gray-500"
+        >
+          <div class="text-center">
+            <UIcon
+              name="i-lucide-wand-sparkles"
+              class="text-4xl mb-2"
+            />
+            <p>Select a request to view details</p>
+          </div>
         </div>
       </div>
     </div>

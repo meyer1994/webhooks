@@ -1,6 +1,4 @@
 {
-  // https://github.com/microsoft/typescript-go
-  "typescript.experimental.useTsgo": true,
   "[typescript]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint",
     "editor.tabSize": 2,

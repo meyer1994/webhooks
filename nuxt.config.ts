@@ -1,6 +1,12 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  modules: ['@nuxt/eslint', '@vueuse/nuxt', '@nuxt/ui', 'nitro-cloudflare-dev'],
+  modules: [
+    '@nuxt/eslint',
+    '@vueuse/nuxt',
+    '@nuxt/ui',
+    'nitro-cloudflare-dev',
+    'nuxt-echarts',
+  ],
 
   devtools: {
     enabled: false,
@@ -35,13 +41,26 @@ export default defineNuxtConfig({
 
     cloudflare: {
       deployConfig: true,
-      // nodeCompat: true,
+      nodeCompat: true,
     },
   },
 
   typescript: {
     typeCheck: true,
     strict: true,
+  },
+
+  echarts: {
+    charts: [
+      'BarChart',
+    ],
+    components: [
+      'DatasetComponent',
+      'GridComponent',
+      'TooltipComponent',
+      'TransformComponent',
+    ],
+
   },
 
   eslint: {

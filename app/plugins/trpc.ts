@@ -6,7 +6,6 @@ import {
   splitLink,
   type TRPCLink,
 } from '@trpc/client'
-import { observable } from '@trpc/server/observable'
 import { createTRPCNuxtClient } from 'trpc-nuxt/client'
 import type { AppRouter } from '~~/server/trpc'
 
@@ -29,33 +28,14 @@ import type { AppRouter } from '~~/server/trpc'
 export default defineNuxtPlugin(async () => {
   const links: TRPCLink<AppRouter>[] = []
 
-  if (import.meta.server) {
+  if (import.meta.server || import.meta.prerender) {
     const event = useRequestEvent()
     if (!event) throw new Error('No event found')
 
-    const { appRouter } = await import('~~/server/trpc')
-    const { createInternalCaller } = await import('~~/server/utils/trpc')
+    const url = useRequestURL()
+    const headers = useRequestHeaders()
 
-    const caller = await createInternalCaller(appRouter, event!)
-
-    // Internal link to bypass HTTP during SSR. This transforms tRPC calls into
-    // direct function calls against the router, ensuring we stay within the
-    // same execution context as the Nitro event
-    links.push(() => ({ op }) => observable((observer) => {
-      const parts = op.path.split('.')
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let procedure = caller as any
-      for (const part of parts) procedure = procedure[part]
-
-      procedure(op.input)
-        .then((data: unknown) => {
-          observer.next({ result: { data } })
-          observer.complete()
-        })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .catch((err: any) => observer.error(err))
-    }))
+    links.push(httpBatchLink({ url: new URL('/api/trpc', url.origin), headers }))
   }
 
   if (import.meta.browser) {

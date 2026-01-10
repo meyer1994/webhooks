@@ -10,7 +10,6 @@ const schema = z.object({
 export default defineEventHandler(async (event) => {
   const params = await getValidatedRouterParams(event, e => schema.parse(e))
   const db = event.context.db
-  console.log('params', params)
 
   // 1. Get Config
   const config = await db
