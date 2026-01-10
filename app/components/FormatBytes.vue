@@ -1,9 +1,5 @@
 <script setup lang="ts">
-type Props = {
-  value: number
-}
-
-const props = defineProps<Props>()
+const value = defineModel<number>()
 
 const formatBytes = (bytes: number) => {
   if (bytes === 0) return '0 B'
@@ -13,9 +9,9 @@ const formatBytes = (bytes: number) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
 }
 
-const formatted = computed(() => formatBytes(props.value))
+const formatted = computed(() => value.value ? formatBytes(value.value) : 'NA')
 </script>
 
 <template>
-  <span>{{ formatted }}</span>
+  <slot :formatted="formatted" />
 </template>

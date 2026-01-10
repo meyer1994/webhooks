@@ -49,7 +49,7 @@ const bodySize = computed(() => {
                 'text-orange-400 bg-orange-400/10 border-orange-400/20': request.method === 'PUT',
                 'text-red-400 bg-red-400/10 border-red-400/20': request.method === 'DELETE',
                 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20': request.method === 'PATCH',
-                'text-gray-400 bg-gray-400/10 border-gray-400/20': request.method !== 'GET' && request.method !== 'POST' && request.method !== 'PUT' && request.method !== 'DELETE' && request.method !== 'PATCH',
+                'text-gray-400 bg-gray-400/10 border-gray-400/20': !['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method),
               }"
             >
               {{ request.method }}
@@ -106,6 +106,7 @@ const bodySize = computed(() => {
         v-if="request.ipAddress || Object.keys(request.cfProperties).length > 0"
         class="grid grid-cols-1 md:grid-cols-2 gap-4"
       >
+        <!-- location -->
         <div class="bg-gray-900/30 rounded-xl border border-gray-800/50 p-4">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
             <UIcon name="i-lucide-globe" /> Location
@@ -128,6 +129,7 @@ const bodySize = computed(() => {
           </div>
         </div>
 
+        <!-- ip + asn -->
         <div class="bg-gray-900/30 rounded-xl border border-gray-800/50 p-4">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
             <UIcon name="i-lucide-network" /> Network
@@ -170,6 +172,7 @@ const bodySize = computed(() => {
             </UButton>
           </UseClipboard>
         </div>
+
         <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
           <div class="max-h-60 overflow-y-auto custom-scrollbar">
             <table class="w-full text-left text-sm font-mono">

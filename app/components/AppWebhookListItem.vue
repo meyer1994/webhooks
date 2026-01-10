@@ -13,84 +13,88 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  select: [request: Request]
+  delete: [request: Request]
 }>()
 
 const bodySize = computed(() => {
   if (!props.request.body) return 0
   return new Blob([props.request.body]).size
 })
-
-const methodColor = (m: string) => {
-  const map: Record<string, string> = {
-    GET: 'text-green-400',
-    POST: 'text-blue-400',
-    PUT: 'text-orange-400',
-    DELETE: 'text-red-400',
-    PATCH: 'text-cyan-400',
-  }
-  return map[m] || 'text-gray-400'
-}
 </script>
 
 <template>
-  <div
-    class="group relative p-4 cursor-pointer transition-all duration-200 border-l-[3px]"
-    :class="[
-      props.selected
-        ? 'bg-gray-800/80 border-primary-500'
-        : 'bg-transparent border-transparent hover:bg-gray-800/40 hover:border-gray-700',
-    ]"
-    @click="emit('select', request)"
-  >
+  <div class="flex flex-col gap-4">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-1.5">
+    <div class="flex justify-between items-center">
       <div class="flex items-center gap-2">
-        <span
-          class="text-xs font-bold font-mono px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700"
-          :class="methodColor(request.method)"
+        <!-- method -->
+        <UBadge
+          color="neutral"
+          variant="subtle"
+          size="sm"
+          :class="{
+            'text-green-400': request.method === 'GET',
+            'text-blue-400': request.method === 'POST',
+            'text-orange-400': request.method === 'PUT',
+            'text-red-400': request.method === 'DELETE',
+            'text-cyan-400': request.method === 'PATCH',
+          }"
+          :label="request.method"
+        />
+
+        <!-- body size -->
+        <FormatBytes
+          v-slot="{ formatted }"
+          :model-value="bodySize"
         >
-          {{ request.method }}
-        </span>
-        <span
-          v-if="bodySize > 0"
-          class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500 font-mono"
-        >
-          <FormatBytes :value="bodySize" />
-        </span>
+          <span class="text-xs font-mono">
+            {{ formatted }}
+          </span>
+        </FormatBytes>
       </div>
-      <NuxtTime
-        :datetime="request.createdAt"
-        title
-        class="text-[11px] text-gray-500 font-medium whitespace-nowrap"
-      />
+
+      <!-- created at -->
+      <div class="flex items-center gap-2">
+        <UButton
+          icon="i-lucide-trash-2"
+          color="error"
+          variant="ghost"
+          size="xs"
+          @click="emit('delete', request)"
+        />
+        <NuxtTime
+          :datetime="request.createdAt"
+          title
+          class="text-xs text-gray-500 font-medium"
+        />
+      </div>
     </div>
 
     <!-- Details -->
-    <div class="flex items-center gap-3 pl-1">
-      <div class="text-[11px] font-mono text-gray-500 truncate flex-1 flex items-center gap-2">
-        <UIcon
-          name="i-lucide-hash"
-          class="w-3 h-3 text-gray-600"
-        />
-        <span class="text-gray-400 group-hover:text-gray-300 transition-colors">
-          {{ request.id.split('-').pop() }}
-        </span>
-      </div>
+    <div class="flex items-center justify-between gap-4 font-mono">
+      <!-- request id -->
+      <span
+        class="text-xs text-muted-foreground"
+        :title="request.id"
+      >
+        #{{ request.id.split('-').pop() }}
+      </span>
 
-      <!-- Indicators -->
-      <div class="flex items-center gap-2">
-        <UIcon
-          v-if="Object.keys(request.queryParams).length > 0"
-          name="i-lucide-search"
-          class="w-3 h-3 text-gray-600"
-        />
-        <UIcon
-          v-if="Object.keys(request.headers).length > 0"
-          name="i-lucide-align-justify"
-          class="w-3 h-3 text-gray-600"
-        />
-      </div>
+      <!-- headers -->
+      <span
+        class="text-xs text-muted-foreground"
+        :title="request.url"
+      >
+        headers: {{ Object.keys(request.headers).length }}
+      </span>
+
+      <!-- query -->
+      <span
+        class="text-xs text-muted-foreground"
+        :title="request.url"
+      >
+        query: {{ Object.keys(request.queryParams).length }}
+      </span>
     </div>
   </div>
 </template>

@@ -6,6 +6,7 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "dev:systemd": "systemd-run --user --scope -p MemoryMax=4096M nuxt dev",
+    "dev:systemd:loop": "exec bash -c 'while true; do pnpm dev:systemd; sleep 2; done'",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "nuxt typecheck",

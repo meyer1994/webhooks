@@ -1,8 +1,8 @@
 import { TRPCError } from '@trpc/server'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { uuidv7 } from 'uuidv7'
 import * as z from 'zod'
-import { TWebhooks } from '~~/server/db/schema'
+import { TRequests, TWebhooks } from '~~/server/db/schema'
 import { baseProcedure, createTRPCRouter } from '~~/server/utils/trpc'
 
 export const webhookRouter = createTRPCRouter({
@@ -101,5 +101,29 @@ export const webhookRouter = createTRPCRouter({
         .set(updates)
         .where(eq(TWebhooks.id, webhookId))
       return true
+    }),
+
+  delete: baseProcedure
+    .input(z.object({
+      requestId: z.uuidv7(),
+      webhookId: z.uuidv7(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const request = await ctx.db
+        .delete(TRequests)
+        .where(
+          and(
+            eq(TRequests.id, input.requestId),
+            eq(TRequests.webhookId, input.webhookId)))
+        .returning()
+        .get()
+
+      if (!request)
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Request not found',
+        })
+
+      return request
     }),
 })
