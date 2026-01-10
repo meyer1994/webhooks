@@ -42,8 +42,23 @@ scalability.
 
 3.  **Configure environment**: Copy the example environment file and fill in the
     required values.
+
     ```bash
     cp .env.example .env
+    ```
+
+    The following variables are configurable in `.env`:
+
+    ```env
+    # Database
+    DATABASE_URL=file:.data/db.sqlite
+
+    # AWS (S3) / Minio configuration
+    NUXT_AWS_BUCKET='uploads'
+    AWS_REGION='auto'
+    AWS_ACCESS_KEY_ID='minioadmin'
+    AWS_SECRET_ACCESS_KEY='minioadmin'
+    AWS_ENDPOINT_URL='http://localhost:9000'
     ```
 
 ### Running Locally
@@ -72,10 +87,31 @@ applied to Cloudflare D1.
     pnpm run db:generate
     ```
 
-2.  **Apply migrations (local/remote)**: Apply migrations to your D1 database.
+2.  **Apply migrations locally**: Apply migrations to your local D1 instance for
+    development.
+
     ```bash
-    pnpm run cf:migrate
+    pnpm run cf:migrate --local
     ```
+
+3.  **Apply migrations to production**: Apply migrations to your remote D1
+    database on Cloudflare.
+
+    ```bash
+    pnpm run cf:migrate --remote
+    ```
+
+### Cloudflare Bindings & Types
+
+When you add or change bindings in `wrangler.jsonc` (like D1, R2, or Vectorize),
+you should regenerate the TypeScript definitions:
+
+```bash
+pnpm run cf:types
+```
+
+This updates `shared/wrangler.d.ts` to ensure type safety for your Cloudflare
+bindings.
 
 ## Deployment
 
