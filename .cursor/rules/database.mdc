@@ -1,31 +1,42 @@
 ---
-globs: server/db/**/*.ts
+globs: server/db/**/*.ts,server/trpc/**/*.ts
 ---
 
 # Drizzle ORM & Database Patterns
 
-Guidelines for database operations, schema design, and Drizzle ORM usage.
+Guidelines for database operations, schema design, and Drizzle ORM usage with Cloudflare D1 (SQLite).
 
 ## Database Connection
 
-Always use the `useDrizzle()` utility function:
+In tRPC procedures, always use the `db` instance from the context:
 
 ```typescript
-import { useDrizzle } from '@@/server/utils/drizzle'
+export const router = createTRPCRouter({
+  list: baseProcedure.query(async ({ ctx }) => {
+    // ctx.db is already initialized in createTRPCContext
+    return await ctx.db.select().from(TUsers)
+  }),
+})
+```
 
-// In tRPC procedures or server utilities
-const db = useDrizzle()
+In server middleware or tasks, access it via `event.context.db`:
+
+```typescript
+export default defineEventHandler(async (event) => {
+  const db = event.context.db
+  // ...
+})
 ```
 
 ## Schema Patterns
 
 ### Table Definitions
 
-Follow these patterns from [schema.ts](mdc:server/db/schema.ts):
+Follow these patterns from [schema.ts](mdc:server/db/schema.ts). Use `T` prefix for table constants:
 
 ```typescript
-import { relations, sql } from 'drizzle-orm'
-import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { sql } from 'drizzle-orm'
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
 
 export const TTableName = sqliteTable('table_name', {
   // Primary key with UUID
@@ -36,9 +47,9 @@ export const TTableName = sqliteTable('table_name', {
   // Foreign key references
   userId: text('user_id')
     .notNull()
-    .references(() => TUser.id, { onDelete: 'cascade' }),
+    .references(() => TUsers.id, { onDelete: 'cascade' }),
     
-  // Timestamps
+  // Timestamps (stored as text/ISO string in SQLite)
   createdAt: text('created_at')
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
@@ -51,17 +62,16 @@ export const TTableName = sqliteTable('table_name', {
 
 ### Relations
 
-Define relations for type-safe joins:
+Define relations for type-safe joins using the `R` prefix:
 
 ```typescript
+import { relations } from 'drizzle-orm'
+
 export const RTableName = relations(TTableName, ({ one, many }) => ({
-  // One-to-one or many-to-one
-  user: one(TUser, {
+  user: one(TUsers, {
     fields: [TTableName.userId],
-    references: [TUser.id],
+    references: [TUsers.id],
   }),
-  
-  // One-to-many
   children: many(TChildTable),
 }))
 ```
@@ -71,99 +81,47 @@ export const RTableName = relations(TTableName, ({ one, many }) => ({
 ### Basic CRUD Operations
 
 ```typescript
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 
 // SELECT
-const processes = await db
+const users = await ctx.db
   .select()
-  .from(TProcesses)
-  .where(eq(TProcesses.userId, userId))
-  .orderBy(desc(TProcesses.createdAt))
+  .from(TUsers)
+  .orderBy(desc(TUsers.createdAt))
 
 // INSERT
-const [newProcess] = await db
-  .insert(TProcesses)
+const [newUser] = await ctx.db
+  .insert(TUsers)
   .values({
-    userId,
-    // other fields
+    name: 'John Doe',
   })
   .returning()
 
 // UPDATE
-const [updatedProcess] = await db
-  .update(TProcesses)
+const [updatedUser] = await ctx.db
+  .update(TUsers)
   .set({ 
+    name: 'Jane Doe',
     updatedAt: sql`CURRENT_TIMESTAMP`,
-    // other fields 
   })
-  .where(eq(TProcesses.id, processId))
+  .where(eq(TUsers.id, userId))
   .returning()
 
 // DELETE
-const [deletedProcess] = await db
-  .delete(TProcesses)
-  .where(eq(TProcesses.id, processId))
+const [deletedUser] = await ctx.db
+  .delete(TUsers)
+  .where(eq(TUsers.id, userId))
   .returning()
 ```
 
-### Complex Queries
-
-```typescript
-import { and, eq, desc, count, sql } from 'drizzle-orm'
-
-// Joins with relations
-const processesWithFiles = await db
-  .select({
-    process: TProcesses,
-    fileCount: count(TFiles.id),
-  })
-  .from(TProcesses)
-  .leftJoin(TFiles, eq(TFiles.processId, TProcesses.id))
-  .where(eq(TProcesses.userId, userId))
-  .groupBy(TProcesses.id)
-  .orderBy(desc(TProcesses.createdAt))
-
-// Complex conditions
-const filteredData = await db
-  .select()
-  .from(TProcesses)
-  .where(
-    and(
-      eq(TProcesses.userId, userId),
-      sql`${TProcesses.createdAt} > NOW() - INTERVAL '30 days'`
-    )
-  )
-
-// JSONB queries
-const processesWithMetadata = await db
-  .select()
-  .from(TFiles)
-  .where(
-    sql`${TFiles.metadata}->>'filename' ILIKE ${'%' + searchTerm + '%'}`
-  )
-```
-
-### Relations
+### Relations Queries
 
 Find many with relations:
 
 ```ts
-const db = useDrizzle()
-
-const processesWithFiles = await db.query.TProcesses.findMany({
-  with: { files: true },
-  where: eq(TProcesses.id, processId),
-  orderBy: desc(TProcesses.createdAt),
-})
-```
-
-Find one with relations:
-
-```ts
-const db = useDrizzle()
-
-const processWithFiles = await db.query.TProcesses.findFirst({
-  with: { files: true },
-  where: eq(TProcesses.id, processId),
+const usersWithProfile = await ctx.db.query.TUsers.findMany({
+  with: { profile: true },
+  where: eq(TUsers.id, userId),
+  orderBy: desc(TUsers.createdAt),
 })
 ```

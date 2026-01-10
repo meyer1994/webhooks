@@ -3,106 +3,59 @@ globs: server/trpc/**/*.ts
 alwaysApply: false
 ---
 
-# tRPC Route
+# tRPC Route Patterns
 
-This guide shows how to create minimal tRPC routes following the project's 
-established patterns.
+Guidelines for creating tRPC routers and procedures.
 
 ## File Structure
 
 ```
 server/trpc/
-├── index.ts     # Main router
-+── [route].ts   # Route operations
+├── index.ts     # Main app router (merges all other routers)
+└── [route].ts   # Domain-specific routers (e.g., users.ts, files.ts)
 ```
 
 ## Basic Route Template
 
-Create a new file in `server/trpc/` following this template:
-
 ```typescript
 import { z } from 'zod'
-import { TTable } from '../db/schema'
-import { useDrizzle } from '../utils/drizzle'
+import { TUsers } from '../db/schema'
 import { baseProcedure, createTRPCRouter } from '../utils/trpc'
 
-export const router = createTRPCRouter({
+export const userRouter = createTRPCRouter({
   list: baseProcedure
-    .input(z.object({ /* input fields */ }))
+    .input(z.object({ limit: z.number().optional() }))
     .query(async ({ input, ctx }) => {
-      const db = useDrizzle()
-      return await db
+      // Use ctx.db for database access
+      return await ctx.db
         .select()
-        .from(TTable)
-        .where(/* where conditions */)
-        .orderBy(/* order by (if needed) */)
+        .from(TUsers)
+        .limit(input.limit ?? 10)
     }),
 
-  // Mutation example - creates data  
   create: baseProcedure
-    .input(z.object({ /* input fields */ }))
+    .input(z.object({ name: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const db = useDrizzle()
-      const [result] = await db
-        .insert(TTable)
-        .values({ /* map your input fields */})
-        .returning()
-      return result
-    }),
-
-  // Delete example - deletes data
-  delete: baseProcedure
-    .input(z.object({ /* input fields */ }))
-    .mutation(async ({ input, ctx }) => {
-      const db = useDrizzle()
-      const [result] = await db
-        .delete(TTable)
-        .where(/* where conditions */)
-        .returning()
-      return result
-    }),
-
-  update: baseProcedure
-    .input(z.object({ /* input fields */ }))
-    .mutation(async ({ input, ctx }) => {
-      const db = useDrizzle()
-      const [result] = await db
-        .update(TTable)
-        .set({ /* map your input fields */})
-        .where(/* where conditions */)
+      const [result] = await ctx.db
+        .insert(TUsers)
+        .values({ name: input.name })
         .returning()
       return result
     }),
 })
 ```
 
-## Key Patterns
+## Procedures & Context
 
-#### Simplicity
+All procedures have access to the context `ctx`, which includes:
+- `ctx.db`: Drizzle database instance.
+- `ctx.storage`: File storage utility.
+- `ctx.vector`: Vector storage utility.
+- `ctx.event`: The H3 event.
 
-Now we don't care about catching any errors, just input validation and fetching 
-the data. So, ignore errors for now.
+## Key Guidelines
 
-Good example:
-
-```typescript
-baseProcedure
-  .input(z.object({ /* input fields */ }))
-  .mutation(async ({ input, ctx }) => { 
-    console.log(input)
-  })
-```
-
-Bad example:
-
-```typescript
-baseProcedure
-  .input(z.object({ /* input fields */ }))
-  .mutation(async ({ input, ctx }) => { 
-    try {
-      console.log(input)
-    } catch (error) {
-      console.error(error)
-    }
-  })
-```
+1. **Input Validation**: Always use Zod for `.input()`.
+2. **Error Handling**: Do not use `try/catch` inside procedures unless you need to transform an error. Let tRPC handle errors automatically.
+3. **Simplicity**: Procedures should be thin. Move complex logic to `server/utils/` if it needs to be reused.
+4. **Naming**: Use descriptive names for procedures (`list`, `get`, `create`, `update`, `delete`).

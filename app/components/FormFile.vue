@@ -5,7 +5,10 @@ const schema = z.object({
   file: z.instanceof(File)
     .refine(f => f.size > 0, 'File is required')
     .refine(f => f.size <= 10 * 1024 * 1024, 'File size must be less than 10MB')
-    .refine(f => f.type.startsWith('image/'), 'File must be an image')
+    .refine(
+      f => f.type === 'text/plain' || f.type === 'text/markdown',
+      'File must be a text file (plain or markdown)',
+    )
     .refine(f => f.name.trim().length > 0, 'File name is required'),
 })
 
@@ -35,7 +38,7 @@ const emits = defineEmits<{ submit: [e: File] }>()
     >
       <UFileUpload
         v-model="state.file"
-        accept="image/*"
+        accept=".md,.txt,text/plain,text/markdown"
       />
     </UFormField>
 
