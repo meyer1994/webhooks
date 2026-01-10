@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm'
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 export const TWebhooks = sqliteTable('webhooks', {
@@ -22,4 +23,15 @@ export const TRequests = sqliteTable('requests', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, table => ({
   webhookIdx: index('idx_webhook_id').on(table.webhookId),
+}))
+
+export const RWebhooks = relations(TWebhooks, ({ many }) => ({
+  requests: many(TRequests),
+}))
+
+export const RRequests = relations(TRequests, ({ one }) => ({
+  webhook: one(TWebhooks, {
+    fields: [TRequests.webhookId],
+    references: [TWebhooks.id],
+  }),
 }))

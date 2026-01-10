@@ -25,9 +25,11 @@ async function createWebhook() {
             class="text-primary-500 text-3xl"
           />
           <div>
-            <h1 class="text-3xl font-bold text-white">
-              Webhook Inspector
-            </h1>
+            <ULink to="/">
+              <h1 class="text-3xl font-bold text-white">
+                Webhook Inspector
+              </h1>
+            </ULink>
             <p class="text-gray-400 mt-1">
               Inspect incoming webhook requests in real-time
             </p>

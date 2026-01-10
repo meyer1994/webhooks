@@ -2,7 +2,7 @@
 import type { TableColumn } from '@nuxt/ui'
 import type { AppRouterOutputs } from '~~/server/trpc'
 
-type Item = AppRouterOutputs['webhook']['init']['history'][number]
+type Item = AppRouterOutputs['webhook']['list']['requests'][number]
 
 type Props = {
   items: Item[]

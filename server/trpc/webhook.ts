@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { and, desc, eq, gt } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { uuidv7 } from 'uuidv7'
 import * as z from 'zod'
 import { TRequests, TWebhooks } from '~~/server/db/schema'
@@ -25,14 +25,24 @@ export const webhookRouter = createTRPCRouter({
     return config
   }),
 
-  init: baseProcedure
-    .input(z.object({ webhookId: z.string() }))
+  list: baseProcedure
+    .input(z.object({
+      webhookId: z.uuidv7(),
+      limit: z.number().min(1).max(100).default(100),
+    }))
     .query(async ({ ctx, input }) => {
-      const config = await ctx.db
-        .select()
-        .from(TWebhooks)
-        .where(eq(TWebhooks.id, input.webhookId))
-        .get()
+      const config = await ctx.db.query.TWebhooks.findFirst({
+        where: eq(TWebhooks.id, input.webhookId),
+        with: {
+          requests: {
+            orderBy: (t, s) => [
+              s.desc(TRequests.id),
+              s.desc(TRequests.createdAt),
+            ],
+            limit: input.limit,
+          },
+        },
+      })
 
       if (!config)
         throw new TRPCError({
@@ -40,36 +50,21 @@ export const webhookRouter = createTRPCRouter({
           message: 'Webhook not found',
         })
 
-      const history = await ctx.db
-        .select()
-        .from(TRequests)
-        .where(eq(TRequests.webhookId, input.webhookId))
-        .orderBy(desc(TRequests.id))
-
-      return { config, history }
-    }),
-
-  poll: baseProcedure
-    .input(z.object({ webhookId: z.string(), lastId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      return await ctx.db
-        .select()
-        .from(TRequests)
-        .where(
-          and(
-            eq(TRequests.webhookId, input.webhookId),
-            gt(TRequests.id, input.lastId)))
-        .orderBy(desc(TRequests.id))
+      return config
     }),
 
   get: baseProcedure
-    .input(z.object({ requestId: z.string() }))
+    .input(z.object({
+      requestId: z.uuidv7(),
+      webhookId: z.uuidv7(),
+    }))
     .query(async ({ ctx, input }) => {
-      const request = await ctx.db
-        .select()
-        .from(TRequests)
-        .where(eq(TRequests.id, input.requestId))
-        .get()
+      const request = await ctx.db.query.TRequests.findFirst({
+        where: (t, s) =>
+          s.and(
+            s.eq(t.id, input.requestId),
+            s.eq(t.webhookId, input.webhookId)),
+      })
 
       if (!request)
         throw new TRPCError({
@@ -80,14 +75,14 @@ export const webhookRouter = createTRPCRouter({
       return request
     }),
 
-  updateConfig: baseProcedure
+  update: baseProcedure
     .input(
       z.object({
-        webhookId: z.string(),
-        responseStatus: z.number().optional(),
-        responseContentType: z.string().optional(),
-        responseBody: z.string().optional(),
-        responseDelay: z.number().optional(),
+        webhookId: z.uuidv7(),
+        responseStatus: z.number().min(100).max(599).optional(),
+        responseContentType: z.string().max(1024).optional(),
+        responseBody: z.string().max(1024 * 1024 * 1).optional(),
+        responseDelay: z.number().min(0).max(100).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
