@@ -2,6 +2,7 @@
 .output
 .claude
 .wrangler
+.cursor
 
 # Logs
 logs

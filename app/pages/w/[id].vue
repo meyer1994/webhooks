@@ -1,33 +1,55 @@
 <script setup lang="ts">
 import { UseClipboard } from '@vueuse/components'
+import z from 'zod'
 
-const route = useRoute()
+const schemaParams = z.object({
+  id: z.uuidv7(),
+})
+
+const schemaQuery = z.object({
+  r: z.uuidv7().optional(),
+  config: z.enum(['true', 'false']).optional(),
+  filter: z.string().optional(),
+})
+
+definePageMeta({
+  validate: (route) => {
+    schemaParams.parse(route.params)
+    schemaQuery.parse(route.query)
+    return true
+  },
+})
+
 const { $trpc } = useNuxtApp()
 
-// Fetch requests list
+const route = useRoute()
+
 const { data, refresh, status } = await useAsyncData(
-  () => `webhook-${route.params.id}`,
-  () => $trpc.webhook.list.query({ webhookId: route.params.id as string }),
-  { watch: [() => route.params.id], default: () => ({ requests: [] }) },
+  () => `/webhook/${route.params.id}?filter=${route.query.filter}`,
+  () => $trpc.webhook.list.query({
+    webhookId: route.params.id as string,
+    filter: route.query.filter as string | undefined,
+  }),
 )
 
-const { data: dataRequest, execute: executeRequest } = await useAsyncData(
-  () => `webhook-request-${route.query.r}`,
-  () => $trpc.webhook.get.query({
-    requestId: route.query.r as string,
-    webhookId: route.params.id as string,
-  }),
-  {
-    immediate: !!route.query.r,
-    watch: [() => route.query.r, () => route.params.id],
+const { data: dataRequest } = await useAsyncData(
+  () => `/webhook/${route.params.id}/request/${route.query.r}`,
+  async () => {
+    if (!route.query.r) return undefined
+    return await $trpc.webhook.get.query({
+      requestId: route.query.r as string,
+      webhookId: route.params.id as string,
+    })
   },
 )
 
-watch(() => route.query.r, () => executeRequest())
-watch(() => route.params.id, () => executeRequest())
-
 const { pause } = useIntervalFn(() => refresh(), 5_000)
 useTimeoutFn(() => pause(), 8 * 60 * 1_000) // stop polling after 8 minutes
+
+const onUpdateFilter = useDebounceFn(async (value: string) => await navigateTo({
+  replace: false,
+  query: { ...route.query, filter: value || undefined },
+}), 300)
 
 const url = useRequestURL()
 const endpoint = `${url.origin}/api/h/${route.params.id}`
@@ -62,7 +84,7 @@ const CURL
           <!-- url -->
           <UseClipboard v-slot="{ copy, copied }">
             <UButton
-              :label="`/h/${route.params.id}`"
+              :label="`/h/${$route.params.id}`"
               color="neutral"
               variant="outline"
               size="md"
@@ -87,24 +109,56 @@ const CURL
           </UseClipboard>
         </div>
       </template>
+
+      <template #right>
+        <UButton
+          size="sm"
+          color="neutral"
+          variant="outline"
+          :icon="$route.query.config ? 'i-lucide-settings' : 'i-lucide-settings-2'"
+          label="Config"
+          @click.prevent="async () => {
+            await navigateTo({
+              replace: false,
+              query: {
+                ...$route.query,
+                config: $route.query.config === 'true' ? undefined : 'true',
+              },
+            })
+          }"
+        />
+      </template>
     </UHeader>
 
     <UMain class="flex">
       <!-- left bar -->
       <div class="flex flex-col gap-2">
         <!-- title -->
-        <div class="p-2 flex items-center justify-between gap-2">
-          <h2 class="text-lg font-bold">
+        <div class="p-2 grid grid-cols-2 gap-2">
+          <h2 class="text-lg font-bold col-span-1">
             Requests ({{ data?.requests.length }})
           </h2>
 
-          <UButton
+          <div class="col-span-1 flex justify-end">
+            <UButton
+              size="sm"
+              class="col-span-1"
+              color="primary"
+              variant="ghost"
+              :loading="status === 'pending'"
+              icon="i-lucide-refresh-cw"
+              @click="() => refresh()"
+            />
+          </div>
+
+          <UInput
+            placeholder="Search requests"
             size="sm"
-            color="primary"
             variant="ghost"
-            :loading="status === 'pending'"
-            icon="i-lucide-refresh-cw"
-            @click="() => refresh()"
+            color="neutral"
+            class="w-full col-span-2"
+            :value="route.query.filter"
+            @update:model-value="onUpdateFilter(String($event))"
           />
         </div>
 
@@ -116,7 +170,7 @@ const CURL
             :request="i"
             class="border-l-4 border-r-8 border-transparent hover:border-l-primary-500 cursor-pointer p-2"
             @click="async () => await navigateTo({
-              query: { r: i.id },
+              query: { ...$route.query, r: i.id },
               // if the request is already selected, replace the current route
               // so the back button works. if there is already a request selected,
               // replace the current route so the back button still goes back to
@@ -125,19 +179,44 @@ const CURL
               replace: !!$route.query.r,
             })"
             @delete="async () => {
-              await $trpc.webhook.delete.mutate({ requestId: i.id, webhookId: route.params.id as string })
+              await $trpc.webhook.delete.mutate({
+                requestId: i.id,
+                webhookId: $route.params.id as string,
+              })
               await refresh()
+
+              if ($route.query.r === i.id) {
+                return await navigateTo({
+                  replace: false,
+                  query: { ...$route.query, r: undefined },
+                })
+              }
             }"
           />
         </div>
       </div>
 
       <div class="flex-1">
-        <DetailsRequest
-          v-if="dataRequest"
-          class="p-2"
-          :request="dataRequest"
-        />
+        <template v-if="$route.query.config === 'true'">
+          <DetailsWebhookConfig
+            v-if="data"
+            :webhook="data"
+          />
+          <p v-else>
+            No webhook found
+          </p>
+        </template>
+        <template v-else>
+          <DetailsRequest
+            v-if="dataRequest"
+            class="p-2"
+            :request="dataRequest"
+          />
+
+          <p v-else>
+            No request selected
+          </p>
+        </template>
       </div>
     </UMain>
   </div>

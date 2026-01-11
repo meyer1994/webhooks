@@ -60,7 +60,7 @@ const bodySize = computed(() => {
           color="error"
           variant="ghost"
           size="xs"
-          @click="emit('delete', request)"
+          @click.stop="emit('delete', request)"
         />
         <NuxtTime
           :datetime="request.createdAt"

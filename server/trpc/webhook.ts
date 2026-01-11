@@ -26,12 +26,22 @@ export const webhookRouter = createTRPCRouter({
     .input(z.object({
       webhookId: z.uuidv7(),
       limit: z.number().min(1).max(100).default(100),
+      filter: z.string().optional(),
     }))
     .query(async ({ ctx, input }) => {
       const config = await ctx.db.query.TWebhooks.findFirst({
         where: eq(TWebhooks.id, input.webhookId),
         with: {
           requests: {
+            where: (t, s) => s.and(
+              s.eq(t.webhookId, input.webhookId),
+              !input.filter
+                ? undefined
+                : s.or(
+                    s.like(t.method, `%${input.filter}%`),
+                    s.like(t.url, `%${input.filter}%`),
+                    s.like(t.body, `%${input.filter}%`),
+                    s.like(t.id, `%${input.filter}%`))),
             orderBy: (t, s) => [s.desc(t.id), s.desc(t.createdAt)],
             limit: input.limit,
           },
