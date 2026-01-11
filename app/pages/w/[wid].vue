@@ -161,7 +161,7 @@ const CURL
             'border-transparent hover:border-l-primary-500': $route.params.rid !== i.id,
           }"
           @click="async () => await navigateTo({
-            path: `/w/${params.wid}/r/${i.id}`,
+            path: `/w/${$route.params.wid}/r/${i.id}`,
             // if the request is already selected, replace the current route
             // so the back button works. if there is already a request selected,
             // replace the current route so the back button still goes back to
@@ -171,15 +171,15 @@ const CURL
           })"
           @delete="async () => {
             await $trpc.webhook.delete.mutate({
-              requestId: i.id,
+              requestId: $route.params.rid as string,
               webhookId: $route.params.wid as string,
             })
             await refresh()
 
-            if ($route.query.r === i.id) {
+            if ($route.params.rid === i.id) {
               return await navigateTo({
                 replace: false,
-                query: { ...$route.query, r: undefined },
+                path: `/w/${$route.params.wid}`,
               })
             }
           }"
