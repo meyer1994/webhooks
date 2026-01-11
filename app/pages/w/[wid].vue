@@ -30,7 +30,7 @@ const { data, refresh, status } = await useAsyncData(
   () => `/webhook/${params.wid}?filter=${query.filter}`,
   () => $trpc.webhook.list.query({
     filter: query.filter,
-    webhookId: params.wid as string,
+    webhookId: params.wid,
   }),
 )
 
@@ -39,7 +39,7 @@ useTimeoutFn(() => pause(), 8 * 60 * 1_000) // stop polling after 8 minutes
 
 const onUpdateFilter = useDebounceFn(async (value: string) => await navigateTo({
   replace: false,
-  query: { ...route.query, filter: value || undefined },
+  query: { ...query, filter: value || undefined },
 }), 300)
 
 const url = useRequestURL()
@@ -167,7 +167,7 @@ const CURL
             // replace the current route so the back button still goes back to
             // the 'no request selected' state. when clicking through requests,
             // it won't pollute the history with a bunch of urls
-            replace: !!$route.query.r,
+            replace: !!$route.params.rid,
           })"
           @delete="async () => {
             await $trpc.webhook.delete.mutate({
@@ -189,48 +189,6 @@ const CURL
       <!-- right -->
       <div class="col-span-8">
         <NuxtPage :page-key="route => route.fullPath" />
-        <!-- <template v-if="$route.query.config === 'true'">
-          <DetailsWebhookConfig
-            v-if="dataConfig"
-            :default-value="dataConfig"
-            @submit="async (data) => {
-              await $trpc.webhook.update.mutate({
-                ...data,
-                webhookId: $route.params.wid as string,
-              })
-              await refreshConfig()
-            }"
-          >
-            <template #submit-button="{ loading }">
-              <UButton
-                type="submit"
-                color="primary"
-                icon="i-lucide-save"
-                :loading="loading"
-              >
-                Save Configuration
-              </UButton>
-            </template>
-          </DetailsWebhookConfig>
-          <UEmpty
-            v-else
-            icon="i-lucide-alert-circle"
-            title="No webhook found"
-            description="The webhook configuration could not be loaded."
-          />
-        </template>
-        <template v-else>
-          <DetailsRequest
-            v-if="dataRequest"
-            :request="dataRequest"
-          />
-          <UEmpty
-            v-else
-            icon="i-lucide-file-search"
-            title="No request selected"
-            description="Select a request from the list to view its details."
-          />
-        </template> -->
       </div>
     </div>
   </UMain>
