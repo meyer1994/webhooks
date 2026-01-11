@@ -86,6 +86,7 @@ const contentTypeOptions = [
       </template>
 
       <UForm
+        v-slot="{ loading }"
         :schema="schema"
         :state="state"
         class="flex flex-col gap-6"
@@ -146,7 +147,10 @@ const contentTypeOptions = [
         </UFormField>
 
         <div class="flex justify-end">
-          <slot name="submit-button">
+          <slot
+            v-bind="{ loading }"
+            name="submit-button"
+          >
             <UButton
               type="submit"
               color="primary"

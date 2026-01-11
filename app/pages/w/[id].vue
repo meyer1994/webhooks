@@ -50,9 +50,6 @@ const { data: dataConfig, refresh: refreshConfig } = await useAsyncData(
   }),
 )
 
-const loadingConfig = ref(false)
-const toast = useToast()
-
 const { pause } = useIntervalFn(() => refresh(), 5_000)
 useTimeoutFn(() => pause(), 8 * 60 * 1_000) // stop polling after 8 minutes
 
@@ -183,8 +180,8 @@ const CURL
           :selected="route.query.r === i.id"
           :class="{
             'border-l-4 border-r-8 cursor-pointer p-2': true,
-            'border-l-primary-500': route.query.r === i.id,
-            'border-transparent hover:border-l-primary-500': route.query.r !== i.id,
+            'border-l-primary-500': $route.query.r === i.id,
+            'border-transparent hover:border-l-primary-500': $route.query.r !== i.id,
           }"
           @click="async () => await navigateTo({
             query: { ...$route.query, r: i.id },
@@ -219,38 +216,19 @@ const CURL
             v-if="dataConfig"
             :default-value="dataConfig"
             @submit="async (data) => {
-              loadingConfig = true
-              try {
-                await $trpc.webhook.update.mutate({
-                  ...data,
-                  webhookId: $route.params.id as string,
-                })
-                toast.add({
-                  title: 'Success',
-                  description: 'Webhook configuration updated',
-                  color: 'success',
-                })
-                await refreshConfig()
-                await refresh()
-              }
-              catch (error: unknown) {
-                toast.add({
-                  title: 'Error',
-                  description: (error as { message?: string }).message || 'Failed to update configuration',
-                  color: 'error',
-                })
-              }
-              finally {
-                loadingConfig = false
-              }
+              await $trpc.webhook.update.mutate({
+                ...data,
+                webhookId: $route.params.id as string,
+              })
+              await refreshConfig()
             }"
           >
-            <template #submit-button>
+            <template #submit-button="{ loading }">
               <UButton
                 type="submit"
                 color="primary"
                 icon="i-lucide-save"
-                :loading="loadingConfig"
+                :loading="loading"
               >
                 Save Configuration
               </UButton>
