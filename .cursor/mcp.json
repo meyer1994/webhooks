@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "ui.nuxt.com": {
+      "type": "http",
+      "url": "https://ui.nuxt.com/mcp"
+    },
+    "vueuse.org": {
+      "type": "http",
+      "url": "https://gitmcp.io/vueuse/vueuse"
+    },
+    "trpc-nuxt": {
+      "type": "http",
+      "url": "https://gitmcp.io/wobsoriano/trpc-nuxt"
+    }
+  }
+}
