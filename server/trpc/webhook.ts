@@ -108,7 +108,7 @@ export const webhookRouter = createTRPCRouter({
         ...request,
         headers: JSON.parse(request.headers || '{}') as Record<string, string>,
         queryParams: JSON.parse(request.queryParams || '{}') as Record<string, string>,
-        cfProperties: JSON.parse(request.cfProperties || '{}') as Record<string, string>,
+        cfProperties: JSON.parse(request.cfProperties || '{}') as CfProperties,
       }
     }),
 
