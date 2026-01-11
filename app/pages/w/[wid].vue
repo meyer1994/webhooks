@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import * as z from 'zod'
 
+// https://stackoverflow.com/a/54975267
+type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U
+
 const schemaParams = z.object({
   wid: z.uuidv7(),
 })
@@ -21,24 +24,27 @@ definePageMeta({
 
 const { $trpc } = useNuxtApp()
 
-const route = useRoute()
-const params = route.params as z.output<typeof schemaParams>
-const query = route.query as z.output<typeof schemaQuery>
+type Route = Overwrite<ReturnType<typeof useRoute>, {
+  params: z.output<typeof schemaParams>
+  query: z.output<typeof schemaQuery>
+}>
+
+const route = useRoute() as Route
 
 const { data, refresh, status } = await useAsyncData(
-  () => `/webhook/${params.wid}?filter=${query.filter}`,
-  () => $trpc.webhook.list.query({
-    filter: query.filter,
-    webhookId: params.wid,
+  () => `/w/${route.params.wid}/?filter=${route.query.filter}`,
+  async () => await $trpc.webhook.list.query({
+    filter: route.query.filter,
+    webhookId: route.params.wid,
   }),
 )
 
 const { pause } = useIntervalFn(() => refresh(), 5_000)
 useTimeoutFn(() => pause(), 8 * 60 * 1_000) // stop polling after 8 minutes
 
-const onUpdateFilter = useDebounceFn(async (value: string) => await navigateTo({
+const updateFilter = useDebounceFn(async (value: string | undefined) => await navigateTo({
+  query: { ...route.query, filter: value ? String(value) : undefined },
   replace: false,
-  query: { ...query, filter: value || undefined },
 }), 300)
 </script>
 
@@ -58,7 +64,7 @@ const onUpdateFilter = useDebounceFn(async (value: string) => await navigateTo({
           <div class="flex flex-col gap-2">
             <div class="flex items-center justify-between">
               <h2 class="text-lg font-bold">
-                Requests ({{ data?.requests.length }})
+                Requests ({{ data?.length }})
               </h2>
 
               <UButton
@@ -76,15 +82,15 @@ const onUpdateFilter = useDebounceFn(async (value: string) => await navigateTo({
               icon="i-lucide-search"
               color="neutral"
               class="w-full"
-              :value="route.query.filter"
-              @update:model-value="onUpdateFilter(String($event))"
+              :value="$route.query.filter"
+              @update:model-value="updateFilter($event as string | undefined)"
             />
           </div>
         </template>
 
         <!-- bottom -->
         <ListItemRequest
-          v-for="i in data?.requests"
+          v-for="i in data"
           :key="i.id"
           :request="i"
           :selected="$route.params.rid === i.id"

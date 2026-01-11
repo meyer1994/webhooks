@@ -6,6 +6,7 @@ import type * as schema from '../db/schema'
 export type TRPCContext = {
   event: H3Event
   db: DrizzleD1Database<typeof schema>
+  repo: WebhookRepo
 }
 
 export const createTRPCContext = async (event: H3Event) => {
@@ -16,6 +17,7 @@ export const createTRPCContext = async (event: H3Event) => {
   return {
     event,
     db: event.context.db,
+    repo: event.context.repo,
   } satisfies TRPCContext
 }
 

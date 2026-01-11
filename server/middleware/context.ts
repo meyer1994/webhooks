@@ -1,9 +1,7 @@
 import type { Logger } from 'drizzle-orm'
-import type { DrizzleD1Database } from 'drizzle-orm/d1'
 import { drizzle } from 'drizzle-orm/d1'
 import * as schema from '../db/schema'
-
-let db: DrizzleD1Database<typeof schema> | null = null
+import { WebhookRepo } from '../utils/repo'
 
 export default defineEventHandler(async (event) => {
   let logger: Logger | undefined
@@ -11,14 +9,15 @@ export default defineEventHandler(async (event) => {
   if (import.meta.dev) {
     logger = {
       logQuery: (query: string, params: unknown[]) => {
+        if (process.env.NODE_ENV === 'production') return
         console.debug('[DB] Query:', { query, params })
       },
     }
   }
 
-  if (!db) {
-    db = drizzle(event.context.cloudflare.env.DB, { schema, logger })
-    console.info('[Middleware] DB initialized')
-  }
-  event.context.db = db
+  event.context.db = drizzle(event.context.cloudflare.env.DB, { schema, logger })
+  console.info('[Middleware] DB initialized')
+
+  event.context.repo = new WebhookRepo(event.context.db)
+  console.info('[Middleware] Repo initialized')
 })

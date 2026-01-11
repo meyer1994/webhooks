@@ -69,14 +69,25 @@ const CURL = computed(() =>
     </template>
 
     <template #right>
-      <UButton
-        size="sm"
-        :color="$route.path.endsWith('/s') ? 'primary' : 'neutral'"
-        variant="outline"
-        :icon="$route.query.config ? 'i-lucide-settings' : 'i-lucide-settings-2'"
-        label="Config"
-        :to="`/w/${wid}/s`"
-      />
+      <div class="flex items-center gap-2">
+        <UButton
+          size="sm"
+          :color="$route.path.endsWith('/c') ? 'primary' : 'neutral'"
+          variant="outline"
+          icon="i-lucide-line-chart"
+          label="Charts"
+          :to="`/w/${wid}/c`"
+        />
+
+        <UButton
+          size="sm"
+          :color="$route.path.endsWith('/s') ? 'primary' : 'neutral'"
+          variant="outline"
+          :icon="$route.path.endsWith('/s') ? 'i-lucide-settings' : 'i-lucide-settings-2'"
+          label="Config"
+          :to="`/w/${wid}/s`"
+        />
+      </div>
     </template>
   </UHeader>
 </template>

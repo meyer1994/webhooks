@@ -3,7 +3,7 @@ import type { EChartsOption } from 'echarts'
 import * as echarts from 'echarts/core'
 import type { AppRouterOutputs } from '~~/server/trpc'
 
-type Request = AppRouterOutputs['webhook']['list']['requests'][number]
+type Request = AppRouterOutputs['webhook']['list'][number]
 
 type Interval = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
 type Method = 'count' | 'sum' | 'avg'
@@ -53,8 +53,8 @@ echarts.registerTransform({
 
     for (const row of data) {
       const rowObj = row as Record<string, unknown>
-      const timestamp = new Date(rowObj[sourceColumn] as string | number | Date)
-      const value = (rowObj[resultColumn] as number) || 1
+      const timestamp = new Date(rowObj[String(sourceColumn)] as string | number | Date)
+      const value = (rowObj[String(resultColumn)] as number) || 1
 
       // Round down to interval
       const ts = new Date(timestamp.getTime())
@@ -180,16 +180,6 @@ const option = computed<EChartsOption>(() => ({
         class="w-32 bg-gray-900 border border-gray-800 rounded-md"
       />
     </div>
-    <VChart
-      class="chart"
-      :option="option"
-    />
+    <VChart :option="option" />
   </div>
 </template>
-
-<style scoped>
-.chart {
-  width: 100%;
-  height: 200px;
-}
-</style>

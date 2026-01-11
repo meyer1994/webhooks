@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { AppRouterOutputs } from '~~/server/trpc'
 
-type Request = AppRouterOutputs['webhook']['list']['requests'][number]
+type Request = AppRouterOutputs['webhook']['list'][number]
 
 type Props = {
   request: Request

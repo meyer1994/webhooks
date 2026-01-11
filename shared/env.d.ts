@@ -12,6 +12,7 @@ declare module 'h3' {
     }
 
     db: DrizzleD1Database<typeof schema>
+    repo: WebhookRepo
   }
 }
 

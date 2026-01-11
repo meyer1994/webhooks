@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { uuidv7 } from 'uuidv7'
 import z from 'zod'
-import { TRequests, TWebhooks } from '~~/server/db/schema'
+import { TWebhooks } from '~~/server/db/schema'
 
 const schema = z.object({
   id: z.uuidv7(),
@@ -22,28 +22,24 @@ export default defineEventHandler(async (event) => {
 
   const id = uuidv7()
   const url = getRequestURL(event).href
-  const headers = getRequestHeaders(event)
+  const headers = getRequestHeaders(event) as Record<string, string>
   const ipAddress = headers['cf-connecting-ip'] || headers['x-forwarded-for'] || undefined
-  const queryParams = getQuery(event)
+  const queryParams = getQuery(event) as Record<string, string>
   const body = await readRawBody(event, 'utf8')
-  const cfProperties = event.context.cf ? JSON.stringify(event.context.cf) : undefined
 
   event.waitUntil(
     (async (): Promise<void> => {
       try {
         console.log('[DB] Inserting request:', id)
-        await db.insert(TRequests).values([{
-          id,
-          webhookId: params.id,
+        await event.context.repo.append(params.id, {
           method: event.method,
           url,
-          headers: JSON.stringify(headers),
-          queryParams: JSON.stringify(queryParams),
+          headers,
+          queryParams,
           body,
           ipAddress,
-          cfProperties,
-          createdAt: new Date(),
-        }])
+          cfProperties: event.context.cf,
+        })
       }
       catch (error) {
         console.error(`[DB] Error inserting request: ${id}`, error)

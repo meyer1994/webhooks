@@ -62,7 +62,6 @@ export default defineNuxtConfig({
       'TransformComponent',
       'LegendComponent',
     ],
-
   },
 
   eslint: {

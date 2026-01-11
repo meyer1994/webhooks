@@ -3,7 +3,7 @@ import type { EChartsOption } from 'echarts'
 import * as echarts from 'echarts/core'
 import type { AppRouterOutputs } from '~~/server/trpc'
 
-type Request = AppRouterOutputs['webhook']['list']['requests'][number]
+type Request = AppRouterOutputs['webhook']['list'][number]
 
 type Interval = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
 type Method = 'count' | 'sum' | 'avg'
@@ -221,16 +221,6 @@ const option = computed<EChartsOption>(() => ({
         class="w-32 bg-gray-900 border border-gray-800 rounded-md"
       />
     </div>
-    <VChart
-      class="chart"
-      :option="option"
-    />
+    <VChart :option="option" />
   </div>
 </template>
-
-<style scoped>
-.chart {
-  width: 100%;
-  height: 250px;
-}
-</style>
