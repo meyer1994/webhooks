@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import type { FormSubmitEvent } from '@nuxt/ui'
 import * as z from 'zod'
-import type { AppRouterOutputs } from '~~/server/trpc'
-
-type Webhook = AppRouterOutputs['webhook']['list']
 
 const schema = z.object({
   responseStatus: z.number().min(100).max(599),
@@ -16,24 +12,36 @@ type Schema = z.output<typeof schema>
 export type FormWebhookConfigData = Schema
 
 type Props = {
-  webhook: Webhook
+  defaultValue?: {
+    id: string
+    responseStatus?: number | null
+    responseContentType?: string | null
+    responseBody?: string | null
+    responseDelay?: number | null
+  }
 }
 
-const props = defineProps<Props>()
-const emits = defineEmits<{ updated: [] }>()
+const props = withDefaults(defineProps<Props>(), {
+  defaultValue: () => ({
+    id: '',
+    responseStatus: 200,
+    responseContentType: 'application/json',
+    responseBody: '{"status":"ok"}',
+    responseDelay: 0,
+  }),
+})
 
-const { $trpc } = useNuxtApp()
-const toast = useToast()
+const emits = defineEmits<{ submit: [e: Schema] }>()
 
 const state = reactive<Partial<Schema>>({
-  responseStatus: props.webhook.responseStatus ?? 200,
-  responseContentType: props.webhook.responseContentType ?? 'application/json',
-  responseBody: props.webhook.responseBody ?? '{"status":"ok"}',
-  responseDelay: props.webhook.responseDelay ?? 0,
+  responseStatus: props.defaultValue?.responseStatus ?? 200,
+  responseContentType: props.defaultValue?.responseContentType ?? 'application/json',
+  responseBody: props.defaultValue?.responseBody ?? '{"status":"ok"}',
+  responseDelay: props.defaultValue?.responseDelay ?? 0,
 })
 
 // Sync props changes to state
-watch(() => props.webhook, (v) => {
+watch(() => props.defaultValue, (v) => {
   if (v) {
     Object.assign(state, {
       responseStatus: v.responseStatus ?? 200,
@@ -43,34 +51,6 @@ watch(() => props.webhook, (v) => {
     })
   }
 }, { deep: true })
-
-const loading = ref(false)
-
-async function onSubmit(event: FormSubmitEvent<Schema>) {
-  loading.value = true
-  try {
-    await $trpc.webhook.update.mutate({
-      webhookId: props.webhook.id,
-      ...event.data,
-    })
-    toast.add({
-      title: 'Success',
-      description: 'Webhook configuration updated',
-      color: 'success',
-    })
-    emits('updated')
-  }
-  catch (error: unknown) {
-    toast.add({
-      title: 'Error',
-      description: (error as { message?: string }).message || 'Failed to update configuration',
-      color: 'error',
-    })
-  }
-  finally {
-    loading.value = false
-  }
-}
 
 const statusOptions = [
   { label: '200 OK', value: 200 },
@@ -100,7 +80,7 @@ const contentTypeOptions = [
             Webhook Configuration
           </h2>
           <span class="text-xs font-mono text-gray-500">
-            ID: {{ webhook.id }}
+            ID: {{ defaultValue?.id }}
           </span>
         </div>
       </template>
@@ -108,8 +88,8 @@ const contentTypeOptions = [
       <UForm
         :schema="schema"
         :state="state"
-        class="space-y-6"
-        @submit="onSubmit"
+        class="flex flex-col gap-6"
+        @submit.prevent="(e) => emits('submit', e.data)"
       >
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <UFormField
@@ -166,14 +146,15 @@ const contentTypeOptions = [
         </UFormField>
 
         <div class="flex justify-end">
-          <UButton
-            type="submit"
-            color="primary"
-            :loading="loading"
-            icon="i-lucide-save"
-          >
-            Save Configuration
-          </UButton>
+          <slot name="submit-button">
+            <UButton
+              type="submit"
+              color="primary"
+              icon="i-lucide-save"
+            >
+              Save Configuration
+            </UButton>
+          </slot>
         </div>
       </UForm>
     </UCard>
@@ -187,7 +168,7 @@ const contentTypeOptions = [
       </template>
       <div class="text-sm text-gray-400 space-y-2">
         <p>
-          This configuration determines how the endpoint <code class="text-primary-400">/api/h/{{ webhook.id }}</code> responds to incoming requests.
+          This configuration determines how the endpoint <code class="text-primary-400">/api/h/{{ defaultValue.id }}</code> responds to incoming requests.
         </p>
         <ul class="list-disc list-inside space-y-1">
           <li>Changes take effect immediately.</li>

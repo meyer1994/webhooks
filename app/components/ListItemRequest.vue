@@ -23,7 +23,12 @@ const bodySize = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div
+    class="flex flex-col gap-4"
+    :class="{
+      'bg-primary-500/10': selected,
+    }"
+  >
     <!-- Header -->
     <div class="flex justify-between items-center">
       <div class="flex items-center gap-2">

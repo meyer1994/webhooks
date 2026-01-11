@@ -22,6 +22,24 @@ export const webhookRouter = createTRPCRouter({
     return config
   }),
 
+  config: baseProcedure
+    .input(z.object({
+      webhookId: z.uuidv7(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const config = await ctx.db.query.TWebhooks.findFirst({
+        where: (t, s) => s.eq(t.id, input.webhookId),
+      })
+
+      if (!config)
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Webhook not found',
+        })
+
+      return config
+    }),
+
   list: baseProcedure
     .input(z.object({
       webhookId: z.uuidv7(),
@@ -105,11 +123,15 @@ export const webhookRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { webhookId, ...updates } = input
       await ctx.db
         .update(TWebhooks)
-        .set(updates)
-        .where(eq(TWebhooks.id, webhookId))
+        .set({
+          responseStatus: input.responseStatus,
+          responseContentType: input.responseContentType,
+          responseBody: input.responseBody,
+          responseDelay: input.responseDelay,
+        })
+        .where(eq(TWebhooks.id, input.webhookId))
       return true
     }),
 

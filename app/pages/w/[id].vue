@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { UseClipboard } from '@vueuse/components'
-import z from 'zod'
+import * as z from 'zod'
 
 const schemaParams = z.object({
   id: z.uuidv7(),
@@ -43,6 +43,16 @@ const { data: dataRequest } = await useAsyncData(
   },
 )
 
+const { data: dataConfig, refresh: refreshConfig } = await useAsyncData(
+  () => `/webhook/${route.params.id}/config`,
+  async () => await $trpc.webhook.config.query({
+    webhookId: route.params.id as string,
+  }),
+)
+
+const loadingConfig = ref(false)
+const toast = useToast()
+
 const { pause } = useIntervalFn(() => refresh(), 5_000)
 useTimeoutFn(() => pause(), 8 * 60 * 1_000) // stop polling after 8 minutes
 
@@ -61,8 +71,8 @@ const CURL
 </script>
 
 <template>
-  <div class="flex flex-col">
-    <!-- Header -->
+  <UMain>
+    <!-- header -->
     <UHeader :ui="{ container: '!mx-0 !px-4 !max-w-full' }">
       <template #left>
         <div class="flex items-center gap-4">
@@ -130,94 +140,142 @@ const CURL
       </template>
     </UHeader>
 
-    <UMain class="flex">
-      <!-- left bar -->
-      <div class="flex flex-col gap-2">
-        <!-- title -->
-        <div class="p-2 grid grid-cols-2 gap-2">
-          <h2 class="text-lg font-bold col-span-1">
-            Requests ({{ data?.requests.length }})
-          </h2>
+    <!-- content -->
+    <div class="grid grid-cols-12 gap-4 p-4">
+      <!-- left -->
+      <UCard
+        class="col-span-4"
+        :ui="{ body: '!p-0' }"
+      >
+        <template #header>
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-bold">
+                Requests ({{ data?.requests.length }})
+              </h2>
 
-          <div class="col-span-1 flex justify-end">
-            <UButton
-              size="sm"
-              class="col-span-1"
-              color="primary"
-              variant="ghost"
-              :loading="status === 'pending'"
-              icon="i-lucide-refresh-cw"
-              @click="() => refresh()"
+              <UButton
+                size="sm"
+                color="primary"
+                variant="ghost"
+                :loading="status === 'pending'"
+                icon="i-lucide-refresh-cw"
+                @click="() => refresh()"
+              />
+            </div>
+
+            <UInput
+              placeholder="Search requests"
+              icon="i-lucide-search"
+              color="neutral"
+              class="w-full"
+              :value="route.query.filter"
+              @update:model-value="onUpdateFilter(String($event))"
             />
           </div>
+        </template>
 
-          <UInput
-            placeholder="Search requests"
-            size="sm"
-            variant="ghost"
-            color="neutral"
-            class="w-full col-span-2"
-            :value="route.query.filter"
-            @update:model-value="onUpdateFilter(String($event))"
-          />
-        </div>
+        <!-- bottom -->
+        <ListItemRequest
+          v-for="i in data?.requests"
+          :key="i.id"
+          :request="i"
+          :selected="route.query.r === i.id"
+          :class="{
+            'border-l-4 border-r-8 cursor-pointer p-2': true,
+            'border-l-primary-500': route.query.r === i.id,
+            'border-transparent hover:border-l-primary-500': route.query.r !== i.id,
+          }"
+          @click="async () => await navigateTo({
+            query: { ...$route.query, r: i.id },
+            // if the request is already selected, replace the current route
+            // so the back button works. if there is already a request selected,
+            // replace the current route so the back button still goes back to
+            // the 'no request selected' state. when clicking through requests,
+            // it won't pollute the history with a bunch of urls
+            replace: !!$route.query.r,
+          })"
+          @delete="async () => {
+            await $trpc.webhook.delete.mutate({
+              requestId: i.id,
+              webhookId: $route.params.id as string,
+            })
+            await refresh()
 
-        <!-- requests list -->
-        <div class="h-full overflow-y-auto">
-          <ListItemRequest
-            v-for="i in data?.requests"
-            :key="i.id"
-            :request="i"
-            class="border-l-4 border-r-8 border-transparent hover:border-l-primary-500 cursor-pointer p-2"
-            @click="async () => await navigateTo({
-              query: { ...$route.query, r: i.id },
-              // if the request is already selected, replace the current route
-              // so the back button works. if there is already a request selected,
-              // replace the current route so the back button still goes back to
-              // the 'no request selected' state. when clicking through requests,
-              // it won't pollute the history with a bunch of urls
-              replace: !!$route.query.r,
-            })"
-            @delete="async () => {
-              await $trpc.webhook.delete.mutate({
-                requestId: i.id,
-                webhookId: $route.params.id as string,
+            if ($route.query.r === i.id) {
+              return await navigateTo({
+                replace: false,
+                query: { ...$route.query, r: undefined },
               })
-              await refresh()
+            }
+          }"
+        />
+      </UCard>
 
-              if ($route.query.r === i.id) {
-                return await navigateTo({
-                  replace: false,
-                  query: { ...$route.query, r: undefined },
-                })
-              }
-            }"
-          />
-        </div>
-      </div>
-
-      <div class="flex-1">
+      <!-- right -->
+      <div class="col-span-8">
         <template v-if="$route.query.config === 'true'">
           <DetailsWebhookConfig
-            v-if="data"
-            :webhook="data"
+            v-if="dataConfig"
+            :default-value="dataConfig"
+            @submit="async (data) => {
+              loadingConfig = true
+              try {
+                await $trpc.webhook.update.mutate({
+                  ...data,
+                  webhookId: $route.params.id as string,
+                })
+                toast.add({
+                  title: 'Success',
+                  description: 'Webhook configuration updated',
+                  color: 'success',
+                })
+                await refreshConfig()
+                await refresh()
+              }
+              catch (error: unknown) {
+                toast.add({
+                  title: 'Error',
+                  description: (error as { message?: string }).message || 'Failed to update configuration',
+                  color: 'error',
+                })
+              }
+              finally {
+                loadingConfig = false
+              }
+            }"
+          >
+            <template #submit-button>
+              <UButton
+                type="submit"
+                color="primary"
+                icon="i-lucide-save"
+                :loading="loadingConfig"
+              >
+                Save Configuration
+              </UButton>
+            </template>
+          </DetailsWebhookConfig>
+          <UEmpty
+            v-else
+            icon="i-lucide-alert-circle"
+            title="No webhook found"
+            description="The webhook configuration could not be loaded."
           />
-          <p v-else>
-            No webhook found
-          </p>
         </template>
         <template v-else>
           <DetailsRequest
             v-if="dataRequest"
-            class="p-2"
             :request="dataRequest"
           />
-
-          <p v-else>
-            No request selected
-          </p>
+          <UEmpty
+            v-else
+            icon="i-lucide-file-search"
+            title="No request selected"
+            description="Select a request from the list to view its details."
+          />
         </template>
       </div>
-    </UMain>
-  </div>
+    </div>
+  </UMain>
 </template>
