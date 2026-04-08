@@ -30,7 +30,7 @@
     "@vueuse/components": "^14.1.0",
     "@vueuse/core": "^14.1.0",
     "@vueuse/nuxt": "^14.1.0",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "^0.45.2",
     "echarts": "^6.0.0",
     "echarts-simple-transform": "^1.0.0",
     "nuxt": "^4.2.2",
