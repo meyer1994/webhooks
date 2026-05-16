@@ -2,8 +2,9 @@
 export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
-    '@vueuse/nuxt',
+    '@nuxt/test-utils/module',
     '@nuxt/ui',
+    '@vueuse/nuxt',
     'nitro-cloudflare-dev',
     'nuxt-echarts',
   ],
@@ -33,6 +34,15 @@ export default defineNuxtConfig({
     cloudflare: {
       deployConfig: true,
       nodeCompat: true,
+    },
+  },
+
+  vite: {
+    optimizeDeps: {
+      include: [
+        '@trpc/client',
+        'zod',
+      ],
     },
   },
 

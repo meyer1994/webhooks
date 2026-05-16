@@ -9,8 +9,7 @@ export default defineEventHandler(async (event) => {
   if (import.meta.dev) {
     logger = {
       logQuery: (query: string, params: unknown[]) => {
-        if (process.env.NODE_ENV === 'production') return
-        console.debug('[DB] Query:', { query, params })
+        if (import.meta.dev) console.debug('[DB] Query:', { query, params })
       },
     }
   }
