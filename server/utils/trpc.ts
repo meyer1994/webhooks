@@ -13,7 +13,6 @@ export const createTRPCContext = async (event: H3Event) => {
   /**
   * @see: https://trpc.io/docs/server/context
   */
-
   return {
     event,
     db: event.context.db,

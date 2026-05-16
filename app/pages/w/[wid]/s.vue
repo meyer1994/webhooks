@@ -17,12 +17,30 @@ const { $trpc } = useNuxtApp()
 const route = useRoute()
 const params = route.params as z.output<typeof schemaParams>
 
-const { data } = await useAsyncData(
+const { data: rawConfig, refresh: refreshRaw } = await useAsyncData(
   () => `/webhook/${params.wid}/config`,
   () => $trpc.webhook.config.query({
     webhookId: params.wid as string,
   }),
 )
+
+const data = computed(() => {
+  if (!rawConfig.value) return null
+  const config = rawConfig.value
+  // Transform null to undefined for form compatibility
+  return {
+    name: config.name ?? undefined,
+    allowCors: config.allowCors ?? false,
+    responseStatus: config.responseStatus ?? 200,
+    responseContentType: config.responseContentType ?? 'application/json',
+    responseBody: config.responseBody ?? '{"status":"ok"}',
+    responseDelay: config.responseDelay ?? 0,
+  }
+})
+
+async function refresh() {
+  await refreshRaw()
+}
 </script>
 
 <template>
@@ -34,19 +52,24 @@ const { data } = await useAsyncData(
             Webhook Configuration
           </h2>
           <span class="text-xs font-mono text-gray-500">
-            ID: {{ data?.id }}
+            ID: {{ params.wid }}
           </span>
         </div>
       </template>
 
-      <!-- @vue-expect-error - TODO: fix this -->
       <FormSettings
         :default-value="data"
-        @submit="async (data) => {
+        @submit="async (formData) => {
           await $trpc.webhook.update.mutate({
-            ...data,
+            ...formData,
             webhookId: params.wid as string,
           })
+          const toast = useToast()
+          toast.add({
+            title: 'Configuration saved',
+            color: 'success',
+          })
+          await refresh()
         }"
       />
     </UCard>
@@ -60,7 +83,7 @@ const { data } = await useAsyncData(
       </template>
       <div class="text-sm text-gray-400 space-y-2">
         <p>
-          This configuration determines how the endpoint <code class="text-primary-400">/api/h/{{ data?.id }}</code> responds to incoming requests.
+          This configuration determines how the endpoint <code class="text-primary-400">/api/h/{{ params.wid }}</code> responds to incoming requests.
         </p>
         <ul class="list-disc list-inside space-y-1">
           <li>Changes take effect immediately.</li>

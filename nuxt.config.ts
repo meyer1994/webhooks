@@ -21,15 +21,6 @@ export default defineNuxtConfig({
     preference: 'dark',
   },
 
-  runtimeConfig: {
-    database: {
-      url: process.env.DATABASE_URL,
-    },
-    aws: {
-      bucket: process.env.NUXT_AWS_BUCKET,
-    },
-  },
-
   build: {
     transpile: ['trpc-nuxt'],
   },
@@ -48,20 +39,6 @@ export default defineNuxtConfig({
   typescript: {
     typeCheck: false,
     strict: true,
-  },
-
-  echarts: {
-    charts: [
-      'BarChart',
-      'LineChart',
-    ],
-    components: [
-      'DatasetComponent',
-      'GridComponent',
-      'TooltipComponent',
-      'TransformComponent',
-      'LegendComponent',
-    ],
   },
 
   eslint: {

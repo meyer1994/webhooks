@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "99a8350b-b954-4800-96b1-54c288f4b1fd",
+  "id": "74d888dd-42c9-4420-bd16-cb9694bf7916",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "requests": {
@@ -159,6 +159,21 @@
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "allow_cors": {
+          "name": "allow_cors",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
         },
         "response_status": {
           "name": "response_status",

@@ -21,6 +21,8 @@ CREATE INDEX `idx_request_url` ON `requests` (`url`);--> statement-breakpoint
 CREATE INDEX `idx_request_ip_address` ON `requests` (`ip_address`);--> statement-breakpoint
 CREATE TABLE `webhooks` (
 	`id` text PRIMARY KEY NOT NULL,
+	`name` text,
+	`allow_cors` integer DEFAULT false,
 	`response_status` integer DEFAULT 200,
 	`response_content_type` text DEFAULT 'application/json',
 	`response_body` text DEFAULT '{"status":"ok"}',

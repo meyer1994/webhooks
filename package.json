@@ -6,21 +6,17 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "dev:systemd": "systemd-run --user --scope -p MemoryMax=4096M nuxt dev",
-    "dev:systemd:loop": "exec bash -c 'while true; do pnpm dev:systemd; sleep 2; done'",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "nuxt typecheck",
     "clean": "rm -rf .output .wrangler .nuxt",
-    "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "reset": "pnpm clean && rm -rf node_modules  && pnpm install && pnpm run lint && pnpm run typecheck && pnpm run build",
     "db:generate": "dotenv -e .env -- drizzle-kit generate",
+    "db:migrate": "wrangler d1 migrations apply webhooks",
     "cf:deploy": "pnpm run build && wrangler --cwd .output deploy",
-    "cf:deploy:systemd": "systemd-run --user --scope -p MemoryMax=4096M pnpm run cf:deploy",
-    "cf:types": "wrangler types shared/wrangler.d.ts",
-    "cf:dev": "wrangler dev",
-    "cf:migrate": "wrangler d1 migrations apply webhooks"
+    "cf:types": "wrangler types shared/wrangler.d.ts"
   },
   "dependencies": {
     "@nuxt/eslint": "1.12.1",

@@ -85,6 +85,37 @@ const { data, refresh, status } = await useAsyncData(
             :items="data || []"
           />
         </UCard>
+
+        <!-- method stats and geo stats in a grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- method stats chart -->
+          <UCard variant="subtle">
+            <template #header>
+              <div class="flex items-center gap-2 text-sm font-semibold text-gray-400">
+                <UIcon name="i-lucide-server" />
+                HTTP METHODS
+              </div>
+            </template>
+            <ChartMethodStats
+              class="h-80"
+              :items="data || []"
+            />
+          </UCard>
+
+          <!-- geo stats chart -->
+          <UCard variant="subtle">
+            <template #header>
+              <div class="flex items-center gap-2 text-sm font-semibold text-gray-400">
+                <UIcon name="i-lucide-globe" />
+                GEOGRAPHICAL DISTRIBUTION
+              </div>
+            </template>
+            <ChartGeoStats
+              class="h-80"
+              :items="data || []"
+            />
+          </UCard>
+        </div>
       </div>
     </UCard>
 

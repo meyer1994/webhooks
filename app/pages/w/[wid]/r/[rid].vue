@@ -25,23 +25,119 @@ const data = await $trpc.webhook.get.query({
   webhookId: params.wid,
 })
 
+const url = useRequestURL()
+const showRawBody = ref(false)
+
 const formattedBody = computed(() => {
   if (!data.body) return ''
-  if (typeof data.body !== 'object') return data.body
-  return JSON.stringify(data.body, null, 2)
+  if (showRawBody.value) return data.body
+  try {
+    const parsed = JSON.parse(data.body)
+    return JSON.stringify(parsed, null, 2)
+  }
+  catch {
+    return data.body
+  }
 })
 
 const isBodyJson = computed(() => {
-  return data.body && typeof data.body === 'object'
+  if (!data.body) return false
+  try {
+    JSON.parse(data.body)
+    return true
+  }
+  catch {
+    return false
+  }
 })
 
 const bodySize = computed(() => {
   if (!data.body) return 0
-  const content = typeof data.body === 'object'
-    ? JSON.stringify(data.body)
-    : data.body
-  return new Blob([content]).size
+  return new Blob([data.body]).size
 })
+
+const curlCommand = computed(() => {
+  const endpoint = `${url.origin}/api/h/${params.wid}`
+  const method = data.method || 'POST'
+  const headers = data.headers || {}
+  const queryParams = data.queryParams || {}
+  const body = data.body || ''
+
+  let curl = `curl -X ${method} "${endpoint}`
+
+  // Add query params
+  const queryString = Object.entries(queryParams)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('&')
+  if (queryString) curl += `?${queryString}`
+  curl += '"'
+
+  // Add headers (excluding some that shouldn't be included)
+  const excludeHeaders = ['host', 'content-length', 'connection']
+  Object.entries(headers).forEach(([key, value]) => {
+    if (!excludeHeaders.includes(key.toLowerCase())) {
+      curl += ` \\\n  -H "${key}: ${value}"`
+    }
+  })
+
+  // Add body
+  if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+    curl += ` \\\n  -d '${body.replace(/'/g, '\'\\\'\'')}'`
+  }
+
+  return curl
+})
+
+const isReplaying = ref(false)
+const replayError = ref<string | null>(null)
+
+async function replayRequest() {
+  isReplaying.value = true
+  replayError.value = null
+
+  try {
+    const endpoint = `${url.origin}/api/h/${params.wid}`
+    const queryString = Object.entries(data.queryParams || {})
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+      .join('&')
+    const urlWithQuery = queryString ? `${endpoint}?${queryString}` : endpoint
+
+    const headers: Record<string, string> = { ...data.headers }
+    // Remove headers that shouldn't be sent in replay
+    delete headers['host']
+    delete headers['content-length']
+    delete headers['connection']
+
+    const response = await fetch(urlWithQuery, {
+      method: data.method || 'POST',
+      headers,
+      body: data.body || undefined,
+    })
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`)
+    }
+
+    const toast = useToast()
+    toast.add({
+      title: 'Request replayed successfully',
+      description: `Status: ${response.status}`,
+      color: 'success',
+    })
+  }
+  catch (error) {
+    replayError.value = error instanceof Error ? error.message : 'Failed to replay request'
+    const toast = useToast()
+    toast.add({
+      title: 'Replay failed',
+      description: replayError.value,
+      color: 'error',
+    })
+  }
+  finally {
+    isReplaying.value = false
+  }
+}
 </script>
 
 <template>
@@ -81,23 +177,54 @@ const bodySize = computed(() => {
             </div>
           </div>
 
-          <!-- left side - time -->
-          <div class="flex flex-col items-end">
+          <!-- left side - time and actions -->
+          <div class="flex flex-col items-end gap-2">
+            <!-- actions -->
+            <div class="flex items-center gap-2">
+              <UseClipboard
+                v-slot="{ copy, copied }"
+                :source="curlCommand"
+              >
+                <UButton
+                  :color="copied ? 'success' : 'neutral'"
+                  variant="outline"
+                  size="sm"
+                  :icon="copied ? 'i-lucide-check' : 'i-lucide-terminal'"
+                  @click="copy()"
+                >
+                  {{ copied ? 'Copied!' : 'Copy cURL' }}
+                </UButton>
+              </UseClipboard>
+
+              <UButton
+                color="primary"
+                variant="outline"
+                size="sm"
+                icon="i-lucide-play"
+                :loading="isReplaying"
+                @click="replayRequest"
+              >
+                Replay
+              </UButton>
+            </div>
+
             <!-- created at -->
-            <NuxtTime
-              :datetime="data.createdAt || new Date()"
-              hour="2-digit"
-              minute="2-digit"
-              second="2-digit"
-              class="text-sm font-medium text-gray-300"
-            />
-            <NuxtTime
-              :datetime="data.createdAt || new Date()"
-              year="numeric"
-              month="2-digit"
-              day="2-digit"
-              class="text-xs text-gray-500"
-            />
+            <div class="flex flex-col items-end">
+              <NuxtTime
+                :datetime="data.createdAt || new Date()"
+                hour="2-digit"
+                minute="2-digit"
+                second="2-digit"
+                class="text-sm font-medium text-gray-300"
+              />
+              <NuxtTime
+                :datetime="data.createdAt || new Date()"
+                year="numeric"
+                month="2-digit"
+                day="2-digit"
+                class="text-xs text-gray-500"
+              />
+            </div>
           </div>
         </div>
       </template>
@@ -261,20 +388,43 @@ const bodySize = computed(() => {
               >JSON</span>
             </div>
           </div>
-          <UseClipboard
-            v-slot="{ copy, copied }"
-            :source="data.body || ''"
-          >
+          <div class="flex items-center gap-2">
             <UButton
-              :color="copied ? 'success' : 'neutral'"
+              v-if="isBodyJson"
+              :color="showRawBody ? 'neutral' : 'primary'"
               variant="ghost"
               size="xs"
-              icon="i-lucide-copy"
-              @click="copy()"
+              icon="i-lucide-code"
+              @click="showRawBody = false"
             >
-              Copy Raw
+              Formatted
             </UButton>
-          </UseClipboard>
+            <UButton
+              v-if="isBodyJson"
+              :color="showRawBody ? 'primary' : 'neutral'"
+              variant="ghost"
+              size="xs"
+              icon="i-lucide-file-text"
+              @click="showRawBody = true"
+            >
+              Raw
+            </UButton>
+
+            <UseClipboard
+              v-slot="{ copy, copied }"
+              :source="data.body || ''"
+            >
+              <UButton
+                :color="copied ? 'success' : 'neutral'"
+                variant="ghost"
+                size="xs"
+                icon="i-lucide-copy"
+                @click="copy()"
+              >
+                Copy Raw
+              </UButton>
+            </UseClipboard>
+          </div>
         </div>
       </template>
 

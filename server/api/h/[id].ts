@@ -53,7 +53,12 @@ export default defineEventHandler(async (event) => {
 
   setResponseStatus(event, config.responseStatus || 200)
   setResponseHeader(event, 'Content-Type', config.responseContentType || 'application/json')
-  setResponseHeader(event, 'Access-Control-Allow-Origin', '*')
+
+  if (config.allowCors) {
+    setResponseHeader(event, 'Access-Control-Allow-Origin', '*')
+    setResponseHeader(event, 'Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
+    setResponseHeader(event, 'Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  }
 
   return config.responseBody || '{"status":"ok"}'
 })

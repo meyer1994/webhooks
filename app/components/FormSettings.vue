@@ -2,6 +2,8 @@
 import * as z from 'zod'
 
 const schema = z.object({
+  name: z.string().max(255).optional(),
+  allowCors: z.boolean().optional(),
   responseStatus: z.number().min(100).max(599),
   responseContentType: z.enum([
     'application/json',
@@ -21,6 +23,8 @@ type Props = {
 
 const props = withDefaults(defineProps<Props>(), {
   defaultValue: () => ({
+    name: undefined,
+    allowCors: false,
     responseStatus: 200,
     responseContentType: 'application/json',
     responseBody: '{"status":"ok"}',
@@ -65,6 +69,29 @@ const contentTypeOptions = [
     @submit.prevent="(e) => emits('submit', e.data)"
   >
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <UFormField
+        label="Name"
+        name="name"
+        description="Optional name to identify this webhook"
+      >
+        <UInput
+          v-model="state.name"
+          placeholder="My Webhook"
+          class="w-full"
+        />
+      </UFormField>
+
+      <UFormField
+        label="CORS"
+        name="allowCors"
+        description="Allow Cross-Origin Resource Sharing (CORS)"
+      >
+        <UCheckbox
+          v-model="state.allowCors"
+          label="Enable CORS"
+        />
+      </UFormField>
+
       <UFormField
         label="Response Status"
         name="responseStatus"

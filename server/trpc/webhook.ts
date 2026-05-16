@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server'
 import { and, eq } from 'drizzle-orm'
 import * as z from 'zod'
-import { TRequests, TWebhooks } from '~~/server/db/schema'
+import { TRequests } from '~~/server/db/schema'
 import { baseProcedure, createTRPCRouter } from '~~/server/utils/trpc'
 
 export const webhookRouter = createTRPCRouter({
@@ -36,11 +36,8 @@ export const webhookRouter = createTRPCRouter({
       limit: z.number().min(1).max(100).default(100),
       filter: z.string().optional(),
     }))
-    .query(async ({ ctx, input }) => {
-      return await ctx.repo.list(input.webhookId, {
-        limit: input.limit,
-        filter: input.filter,
-      })
+    .query(async ({ ctx, input: { webhookId, limit, filter } }) => {
+      return await ctx.repo.list(webhookId, { limit, filter })
     }),
 
   get: baseProcedure
@@ -48,30 +45,36 @@ export const webhookRouter = createTRPCRouter({
       requestId: z.uuidv7(),
       webhookId: z.uuidv7(),
     }))
-    .query(async ({ ctx, input }) => {
-      return await ctx.repo.request(input.webhookId, input.requestId)
+    .query(async ({ ctx, input: { requestId, webhookId } }) => {
+      return await ctx.repo.request(webhookId, requestId)
     }),
 
   update: baseProcedure
     .input(
       z.object({
         webhookId: z.uuidv7(),
+        name: z.string().max(255).optional(),
+        allowCors: z.boolean().optional(),
         responseStatus: z.number().min(100).max(599).optional(),
-        responseContentType: z.string().max(1024).optional(),
+        responseContentType: z
+          .enum(['application/json', 'text/plain', 'text/html', 'application/xml'])
+          .optional(),
         responseBody: z.string().max(1024 * 1024 * 1).optional(),
         responseDelay: z.number().min(0).max(100).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      return await ctx.repo.update(input.webhookId, input)
+    }),
+
+  clear: baseProcedure
+    .input(z.object({
+      webhookId: z.uuidv7(),
+    }))
+    .mutation(async ({ ctx, input }) => {
       await ctx.db
-        .update(TWebhooks)
-        .set({
-          responseStatus: input.responseStatus,
-          responseContentType: input.responseContentType,
-          responseBody: input.responseBody,
-          responseDelay: input.responseDelay,
-        })
-        .where(eq(TWebhooks.id, input.webhookId))
+        .delete(TRequests)
+        .where(eq(TRequests.webhookId, input.webhookId))
       return true
     }),
 

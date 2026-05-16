@@ -46,6 +46,71 @@ const updateFilter = useDebounceFn(async (value: string | undefined) => await na
   query: { ...route.query, filter: value ? String(value) : undefined },
   replace: false,
 }), 300)
+
+const isClearing = ref(false)
+const isExporting = ref(false)
+
+async function clearAllRequests() {
+  isClearing.value = true
+  try {
+    await $trpc.webhook.clear.mutate({
+      webhookId: route.params.wid,
+    })
+    const toast = useToast()
+    toast.add({
+      title: 'All requests cleared',
+      color: 'success',
+    })
+    await refresh()
+  }
+  catch (error) {
+    console.error('Failed to clear requests:', error)
+    const toast = useToast()
+    toast.add({
+      title: 'Failed to clear requests',
+      description: error instanceof Error ? error.message : 'An error occurred',
+      color: 'error',
+    })
+  }
+  finally {
+    isClearing.value = false
+  }
+}
+
+function exportToJson() {
+  isExporting.value = true
+  try {
+    const json = JSON.stringify(data.value || [], null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `webhook-${route.params.wid}-requests-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    const toast = useToast()
+    toast.add({
+      title: 'Exported successfully',
+      description: `${data.value?.length || 0} requests exported`,
+      color: 'success',
+    })
+  }
+  catch (error) {
+    console.error('Failed to export:', error)
+    const toast = useToast()
+    toast.add({
+      title: 'Export failed',
+      description: error instanceof Error ? error.message : 'An error occurred',
+      color: 'error',
+    })
+  }
+  finally {
+    isExporting.value = false
+  }
+}
 </script>
 
 <template>
@@ -67,14 +132,40 @@ const updateFilter = useDebounceFn(async (value: string | undefined) => await na
                 Requests ({{ data?.length }})
               </h2>
 
-              <UButton
-                size="sm"
-                color="primary"
-                variant="ghost"
-                :loading="status === 'pending'"
-                icon="i-lucide-refresh-cw"
-                @click="() => refresh()"
-              />
+              <div class="flex items-center gap-2">
+                <UButton
+                  size="sm"
+                  color="neutral"
+                  variant="ghost"
+                  :loading="isExporting"
+                  :disabled="!data || data.length === 0"
+                  icon="i-lucide-download"
+                  @click="exportToJson"
+                >
+                  Export
+                </UButton>
+
+                <UButton
+                  size="sm"
+                  color="error"
+                  variant="ghost"
+                  :loading="isClearing"
+                  :disabled="!data || data.length === 0"
+                  icon="i-lucide-trash-2"
+                  @click="clearAllRequests"
+                >
+                  Clear All
+                </UButton>
+
+                <UButton
+                  size="sm"
+                  color="primary"
+                  variant="ghost"
+                  :loading="status === 'pending'"
+                  icon="i-lucide-refresh-cw"
+                  @click="() => refresh()"
+                />
+              </div>
             </div>
 
             <UInput

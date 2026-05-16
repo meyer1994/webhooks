@@ -4,8 +4,13 @@ import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 export const TWebhooks = sqliteTable('webhooks', {
   id: text('id').primaryKey(),
 
+  name: text('name'),
+  allowCors: integer('allow_cors', { mode: 'boolean' }).default(false),
+
   responseStatus: integer('response_status').default(200),
-  responseContentType: text('response_content_type').default('application/json'),
+  responseContentType: text('response_content_type')
+    .$type<'application/json' | 'text/plain' | 'text/html' | 'application/xml'>()
+    .default('application/json'),
   responseBody: text('response_body').default('{"status":"ok"}'),
   responseDelay: integer('response_delay').default(0),
 

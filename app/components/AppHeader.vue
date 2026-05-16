@@ -7,6 +7,18 @@ const url = useRequestURL()
 const wid = computed(() => route.params.wid as string)
 const endpoint = computed(() => `${url.origin}/api/h/${wid.value}`)
 
+const { $trpc } = useNuxtApp()
+
+const { data: config } = await useAsyncData(
+  () => `/w/${route.params.wid}/config`,
+  async () => await $trpc.webhook.config.query({
+    webhookId: route.params.wid as string,
+  }),
+  {
+    default: () => null,
+  },
+)
+
 const CURL = computed(() =>
   `curl -X POST ${endpoint.value} \\
   -H "Content-Type: application/json" \\
@@ -30,6 +42,14 @@ const CURL = computed(() =>
             />
             Webhook Inspector
           </ULink>
+        </div>
+
+        <!-- webhook name or url -->
+        <div
+          v-if="config?.name"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-900/50 border border-gray-800"
+        >
+          <span class="text-sm font-medium text-gray-300">{{ config.name }}</span>
         </div>
 
         <!-- url -->
