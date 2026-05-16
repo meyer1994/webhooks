@@ -1,65 +1,58 @@
-# Flower
+# Webhooks
 
-Flower is a modern Vue 3 + Nuxt 4 application designed for document processing
-with AI integration, leveraging Cloudflare's ecosystem for performance and
-scalability.
+This project is a simple and quick way to create endpoints for quickly testing
+webhooks.
 
 ## Features
 
-- **Frontend**: [Nuxt 4](https://nuxt.com/blog/nuxt-4-0) with [Vue
-  3](https://vuejs.org/) and [Nuxt UI 4](https://ui4.nuxt.com/).
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) and [Nuxt
-  UI](https://ui4.nuxt.com/).
-- **API**: Type-safe communication using [tRPC](https://trpc.io/).
-- **Database**: [Drizzle ORM](https://orm.drizzle.team/) with [Cloudflare
-  D1](https://developers.cloudflare.com/d1/).
-- **AI/LLM**: [LangChain](https://js.langchain.com/) and
-  [LangGraph](https://langchain-ai.github.io/langgraphjs/) integrated with
-  [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/).
-- **Storage**: [Cloudflare R2](https://developers.cloudflare.com/r2/) for object
-  storage.
-- **Vector Search**: [Cloudflare
-  Vectorize](https://developers.cloudflare.com/vectorize/) for semantic search.
-- **Authentication**: `nuxt-auth-utils` with Auth0 support.
-- **Developer Experience**: ESLint Stylistic, TypeScript strict mode, and pnpm.
+Tech:
+
+- Built with nuxt: 
+  - https://nuxt.com/raw/docs/4.x/getting-started/introduction.md
+- Frontend with Nuxt UI v4: 
+  - https://ui.nuxt.com/raw/docs/components.md
+- CSS styling with Tailwind: 
+  - https://tailwindcss.com/docs
+- tRPC via HTTP: 
+  - https://trpc.io/docs
+  - https://trpc-nuxt.pages.dev/setup/
+- ORM via drizzle: 
+  - https://orm.drizzle.team/docs/overview
+- Linting + styling with eslint: 
+  - https://eslint.nuxt.com/packages/module
+
+Deploy:
+
+- Deployed to Cloudflare workers:
+  - https://developers.cloudflare.com/docs-for-agents/
+- Database via Cloudflare's D1
+  - https://developers.cloudflare.com/d1/
+  - https://orm.drizzle.team/docs/connect-cloudflare-d1
 
 ## Development
 
 ### Setup
 
-1.  **Clone the repository**:
+```bash
+pnpm install
+cp -v .env.example .env
+pnpm run db:migrate
+pnpm run dev
+```
 
-    ```bash
-    git clone <repository-url>
-    cd nuxt-template
-    ```
+### Configuration
 
-2.  **Install dependencies**:
+```env
+# Database
+DATABASE_URL=file:.data/db.sqlite
 
-    ```bash
-    pnpm install
-    ```
-
-3.  **Configure environment**: Copy the example environment file and fill in the
-    required values.
-
-    ```bash
-    cp .env.example .env
-    ```
-
-    The following variables are configurable in `.env`:
-
-    ```env
-    # Database
-    DATABASE_URL=file:.data/db.sqlite
-
-    # AWS (S3) / Minio configuration
-    NUXT_AWS_BUCKET='uploads'
-    AWS_REGION='auto'
-    AWS_ACCESS_KEY_ID='minioadmin'
-    AWS_SECRET_ACCESS_KEY='minioadmin'
-    AWS_ENDPOINT_URL='http://localhost:9000'
-    ```
+# AWS (S3) / Minio configuration
+NUXT_AWS_BUCKET='uploads'
+AWS_REGION='auto'
+AWS_ACCESS_KEY_ID='minioadmin'
+AWS_SECRET_ACCESS_KEY='minioadmin'
+AWS_ENDPOINT_URL='http://localhost:9000'
+```
 
 ### Running Locally
 
