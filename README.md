@@ -8,14 +8,11 @@ requests roll in with full headers, body, query params, and Cloudflare metadata.
 
 - **Instant endpoints** — URL generated on page load, no account required
 - **Live request log** — polls every 5 seconds, auto-stops after 8 minutes
-- **Configurable responses** — set status code, content type, body, and response
-  delay per endpoint
+- **Configurable responses** — set status code, content type, body, and response delay per endpoint
 - **CORS support** — toggle `Access-Control-Allow-*` headers per endpoint
-- **Request inspector** — drill into headers, body, query params, and Cloudflare
-  geo/network properties
+- **Request inspector** — drill into headers, body, query params, and Cloudflare geo/network properties
 - **Replay & cURL export** — resend any captured request or copy it as a cURL command
-- **Analytics dashboard** — charts for HTTP methods, geographic origin, network, and
-  request timing
+- **Analytics dashboard** — charts for HTTP methods, geographic origin, network, and request timing
 - **Export** — download all captured requests as JSON
 
 ## Tech Stack
@@ -39,10 +36,12 @@ server/
   middleware/context.ts  # initializes Drizzle DB + WebhookRepo on every request
   trpc/webhook.ts        # tRPC router: create, config, list, get, update, clear, delete
   utils/repo.ts          # WebhookRepo — all DB queries
-  db/schema.ts           # two tables: webhooks + requests
+  db/
+    schema.ts            # two tables: webhooks + requests
+    migrations/          # Drizzle-generated SQL migrations
 
 app/pages/
-  index.vue              # landing page — auto-generates a webhook URL on load
+  index.vue              # landing — auto-generates a webhook URL on load
   w/[wid].vue            # dashboard — request list with search, export, clear
   w/[wid]/r/[rid].vue    # request detail — headers, body, query params, CF properties, replay
   w/[wid]/c.vue          # analytics — geo, method, network, and timing charts
@@ -51,26 +50,78 @@ app/pages/
 
 ## Development
 
-### Setup
+### Prerequisites
+
+- [Node.js](https://nodejs.org) ≥ 20
+- [pnpm](https://pnpm.io)
+- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) — `pnpm add -g wrangler`
+
+### Initial Setup
 
 ```bash
 pnpm install
-pnpm run db:migrate
+pnpm run db:migrate   # applies migrations to local D1 (creates .wrangler/state/)
 pnpm run dev
 ```
+
+The app runs at `http://localhost:3000`. The local D1 database is persisted in
+`.wrangler/state/v3/d1/`.
+
+### Database Workflow
+
+#### Changing the schema
+
+1. Edit `server/db/schema.ts`
+2. Generate a migration:
+   ```bash
+   # requires DATABASE_URL pointing to a local SQLite file for introspection
+   DATABASE_URL=file:.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<db-file>.sqlite \
+     pnpm run db:generate
+   ```
+   Or use the dotenv shorthand if you have a `.env` with `DATABASE_URL` set:
+   ```bash
+   pnpm run db:generate
+   ```
+3. Apply the migration locally:
+   ```bash
+   pnpm run db:migrate
+   ```
+
+#### Resetting local state
+
+Delete the Wrangler local D1 state and re-apply migrations from scratch:
+
+```bash
+rm -rf .wrangler/state
+pnpm run db:migrate
+```
+
+#### Applying migrations to production
+
+```bash
+wrangler d1 migrations apply webhooks --remote
+```
+
+### Running Tests
+
+```bash
+pnpm test
+```
+
+Tests live in `tests/nuxt/` and use `@nuxt/test-utils` with a real dev server.
 
 ### Commands
 
 | Command             | Description                                                  |
 | ------------------- | ------------------------------------------------------------ |
-| `pnpm dev`          | Start Nuxt dev server                                        |
+| `pnpm dev`          | Start Nuxt dev server (uses local Cloudflare D1 via Wrangler)|
 | `pnpm test`         | Run test suite                                               |
 | `pnpm lint`         | Run ESLint                                                   |
 | `pnpm lint:fix`     | Auto-fix lint issues                                         |
 | `pnpm typecheck`    | TypeScript type check                                        |
 | `pnpm preview`      | Preview production build locally                             |
-| `pnpm db:generate`  | Generate Drizzle migration after schema changes              |
-| `pnpm db:migrate`   | Apply migrations to local D1                                 |
+| `pnpm db:generate`  | Generate a Drizzle migration from schema changes             |
+| `pnpm db:migrate`   | Apply pending migrations to local D1                         |
 | `pnpm cf:types`     | Regenerate Cloudflare binding types (`shared/wrangler.d.ts`) |
 | `pnpm cf:deploy`    | Build and deploy to Cloudflare Workers                       |
 | `pnpm clean`        | Remove `.output`, `.wrangler`, `.nuxt`                       |
@@ -78,6 +129,26 @@ pnpm run dev
 
 ## Deployment
 
+### First deploy
+
+1. Create the D1 database:
+   ```bash
+   wrangler d1 create webhooks
+   ```
+2. Update `wrangler.jsonc` with the returned `database_id`.
+3. Apply migrations to production:
+   ```bash
+   wrangler d1 migrations apply webhooks --remote
+   ```
+4. Deploy:
+   ```bash
+   pnpm run cf:deploy
+   ```
+
+### Subsequent deploys
+
 ```bash
 pnpm run cf:deploy
+# if schema changed:
+wrangler d1 migrations apply webhooks --remote
 ```
