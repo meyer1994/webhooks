@@ -100,7 +100,7 @@ pnpm run db:migrate
 #### Applying migrations to production
 
 ```bash
-wrangler d1 migrations apply webhooks --remote
+pnpm run db:migrate:remote
 ```
 
 ### Running Tests
@@ -122,7 +122,8 @@ Tests live in `tests/nuxt/` and use `@nuxt/test-utils` with a real dev server.
 | `pnpm typecheck`    | TypeScript type check                                        |
 | `pnpm preview`      | Preview production build locally                             |
 | `pnpm db:generate`  | Generate a Drizzle migration from schema changes             |
-| `pnpm db:migrate`   | Apply pending migrations to local D1                         |
+| `pnpm db:migrate`          | Apply pending migrations to local D1                  |
+| `pnpm db:migrate:remote`   | Apply pending migrations to production D1             |
 | `pnpm cf:types`     | Regenerate Cloudflare binding types (`shared/wrangler.d.ts`) |
 | `pnpm cf:deploy`    | Build and deploy to Cloudflare Workers                       |
 | `pnpm clean`        | Remove `.output`, `.wrangler`, `.nuxt`                       |
@@ -139,7 +140,7 @@ Tests live in `tests/nuxt/` and use `@nuxt/test-utils` with a real dev server.
 2. Update `wrangler.jsonc` with the returned `database_id`.
 3. Apply migrations to production:
    ```bash
-   wrangler d1 migrations apply webhooks --remote
+   pnpm run db:migrate:remote
    ```
 4. Deploy:
    ```bash
