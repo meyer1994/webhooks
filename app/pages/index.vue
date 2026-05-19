@@ -53,7 +53,7 @@ const features = [
 <template>
   <div class="min-h-screen bg-zinc-950">
     <UPageHero
-      headline="WEBHOOK INSPECTOR"
+      headline="WEBHOOKS"
       title="Your endpoint is live."
       description="A unique URL was created for you. Send any HTTP request to it and inspect every detail here."
     >

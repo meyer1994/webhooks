@@ -40,7 +40,7 @@ const CURL = computed(() =>
               name="i-lucide-bolt"
               class="text-primary-500 text-lg"
             />
-            Webhook Inspector
+            webhooks
           </ULink>
         </div>
 
