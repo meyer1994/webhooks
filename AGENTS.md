@@ -1,4 +1,4 @@
-# Bruch Project Agent Guide
+# Webhooks Agent Guide
 
 Vue 3 + Nuxt 4 + tRPC app deployed on Cloudflare Workers with D1 (SQLite).
 
@@ -27,40 +27,137 @@ Vue 3 + Nuxt 4 + tRPC app deployed on Cloudflare Workers with D1 (SQLite).
 └── drizzle.config.ts
 ```
 
+---
+
 ## Commands
 
-- `pnpm dev` / `pnpm build` / `pnpm typecheck` / `pnpm lint(:fix)`
-- `pnpm db:generate` / `pnpm db:migrate`
-- `pnpm test` — run all tests (vitest, verbose, no watch)
-- `pnpm test -- --reporter dot` — quieter output
+### Dev
+
+```bash
+pnpm dev          # start Nuxt dev server (localhost:3000)
+pnpm build        # production build
+pnpm preview      # preview production build locally
+pnpm typecheck    # TypeScript type check
+pnpm lint         # run ESLint
+pnpm lint:fix     # auto-fix lint issues
+pnpm test         # run all tests (vitest, verbose, no watch)
+pnpm test -- --reporter dot  # quieter test output
+pnpm clean        # remove .output .wrangler .nuxt
+```
+
+### Database (Drizzle + Wrangler D1)
+
+```bash
+pnpm db:generate              # generate migration after schema changes
+pnpm db:migrate               # apply migrations to local D1
+
+# Direct wrangler D1 commands
+wrangler d1 create <name>                        # create a new D1 database
+wrangler d1 migrations apply <name> --local      # apply migrations locally
+wrangler d1 migrations apply <name> --remote     # apply migrations to production
+wrangler d1 execute <name> --local --command "SELECT * FROM webhooks LIMIT 5"
+```
+
+### Cloudflare Setup (first deploy)
+
+```bash
+# 1. Create D1 database — copy the database_id into wrangler.jsonc
+wrangler d1 create webhooks
+
+# 2. Create R2 bucket (if needed)
+wrangler r2 bucket create <bucket-name>
+
+# 3. Create KV namespace (if needed)
+wrangler kv namespace create <namespace-name>
+
+# 4. Set secrets (use .dev.vars for local, wrangler secret put for production)
+wrangler secret put SECRET_KEY
+
+# 5. Regenerate TypeScript bindings after changing wrangler.jsonc
+pnpm cf:types   # runs: wrangler types shared/wrangler.d.ts
+
+# 6. Deploy
+pnpm cf:deploy  # runs: nuxt build && wrangler --cwd .output deploy
+```
+
+### Local secrets
+
+Create a `.dev.vars` file (gitignored) for local Wrangler dev — equivalent to
+`.env` but for `wrangler dev`:
+
+```bash
+SECRET_KEY=my-local-secret
+```
+
+---
+
+## Bash Tips
+
+### Inspect JSON
+
+```bash
+cat file.json | jq '.'                    # pretty-print
+cat file.json | jq '.key'                 # extract field
+cat file.json | jq '.[0]'                 # first array element
+cat file.json | jq '[.[] | .id]'          # map over array
+curl -s http://localhost:3000/api/... | jq '.'
+```
+
+### Query structured data (CSV, JSON, Parquet) with DuckDB
+
+```bash
+duckdb -c "SELECT * FROM 'file.csv' LIMIT 10"
+duckdb -c "SELECT * FROM 'file.json' WHERE id = '123'"
+duckdb -c "SELECT * FROM 'file.parquet' LIMIT 5"
+duckdb -c "SELECT method, COUNT(*) FROM 'requests.json' GROUP BY method"
+```
+
+### Search code
+
+```bash
+grep -rin 'pattern' .                    # recursive, case-insensitive, with line numbers
+grep -rin 'pattern' . --include='*.ts'   # limit to file type
+grep -rin 'pattern' . --exclude-dir=node_modules
+```
+
+### Find files
+
+```bash
+find . -name '*.vue'                          # by name
+find . -name '*.ts' -not -path '*/node_modules/*'
+find . -newer some-file.ts                    # modified after a reference file
+```
+
+### Inspect files and directories
+
+```bash
+ls -lh                  # sizes and timestamps, human-readable
+ls -lht                 # sort by modification time (newest first)
+du -sh *                # disk usage per item
+wc -l file.ts           # line count
+```
 
 ---
 
 ## Database (Drizzle)
 
-Always use `useDrizzle()`:
-
-```typescript
-import { useDrizzle } from '@@/server/utils/drizzle'
-const db = useDrizzle()
-```
+Always access the DB via `ctx.db` in tRPC procedures, or `ctx.repo` for
+higher-level helpers.
 
 ### Table & Relations
 
 ```typescript
 export const TTableName = sqliteTable('table_name', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId: text('user_id').notNull()
-    .references(() => TUser.id, { onDelete: 'cascade' }),
-  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text('updated_at').notNull()
-    .default(sql`CURRENT_TIMESTAMP`)
-    .$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
+  id: text('id').primaryKey().$defaultFn(() => uuidv7()),
+  webhookId: text('webhook_id').notNull()
+    .references(() => TWebhooks.id, { onDelete: 'cascade' }),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
 })
 
-export const RTableName = relations(TTableName, ({ one, many }) => ({
-  user: one(TUser, { fields: [TTableName.userId], references: [TUser.id] }),
-  children: many(TChildTable),
+export const RTableName = relations(TTableName, ({ one }) => ({
+  webhook: one(TWebhooks, { fields: [TTableName.webhookId], references: [TWebhooks.id] }),
 }))
 ```
 
@@ -68,18 +165,13 @@ export const RTableName = relations(TTableName, ({ one, many }) => ({
 
 ```typescript
 // CRUD
-await db.select().from(TProcesses).where(eq(TProcesses.userId, userId)).orderBy(desc(TProcesses.createdAt))
-await db.insert(TProcesses).values({ ... }).returning()
-await db.update(TProcesses).set({ ... }).where(eq(TProcesses.id, id)).returning()
-await db.delete(TProcesses).where(eq(TProcesses.id, id)).returning()
+await ctx.db.select().from(TTable).where(eq(TTable.webhookId, id)).orderBy(desc(TTable.createdAt))
+await ctx.db.insert(TTable).values({ ... }).returning()
+await ctx.db.update(TTable).set({ ... }).where(eq(TTable.id, id)).returning()
+await ctx.db.delete(TTable).where(eq(TTable.id, id)).returning()
 
-// With relations
-await db.query.TProcesses.findMany({ with: { files: true }, where: eq(...) })
-await db.query.TProcesses.findFirst({ with: { files: true }, where: eq(...) })
-
-// Joins, JSONB
-.leftJoin(TFiles, eq(TFiles.processId, TProcesses.id))
-.where(sql`${TFiles.metadata}->>'filename' ILIKE ${'%' + term + '%'}`)
+// Single row
+await ctx.db.delete(TTable).where(eq(TTable.id, id)).returning().get()
 ```
 
 ---
@@ -89,38 +181,36 @@ await db.query.TProcesses.findFirst({ with: { files: true }, where: eq(...) })
 ### Route Template
 
 ```typescript
-import { z } from 'zod'
-import { TTable } from '../db/schema'
-import { useDrizzle } from '../utils/drizzle'
-import { baseProcedure, createTRPCRouter } from '../utils/trpc'
+import { TRPCError } from '@trpc/server'
+import { eq } from 'drizzle-orm'
+import * as z from 'zod'
+import { TTable } from '~~/server/db/schema'
+import { baseProcedure, createTRPCRouter } from '~~/server/utils/trpc'
 
 export const router = createTRPCRouter({
   list: baseProcedure
-    .input(z.object({ /* ... */ }))
-    .query(async ({ input, ctx }) => {
-      return await useDrizzle().select().from(TTable)
+    .input(z.object({ webhookId: z.uuidv7() }))
+    .query(async ({ ctx, input }) => {
+      return await ctx.db.select().from(TTable).where(eq(TTable.webhookId, input.webhookId))
     }),
 
   create: baseProcedure
-    .input(z.object({ /* ... */ }))
-    .mutation(async ({ input }) => {
-      const [result] = await useDrizzle().insert(TTable).values({...}).returning()
+    .input(z.object({ webhookId: z.uuidv7() }))
+    .mutation(async ({ ctx, input }) => {
+      const [result] = await ctx.db.insert(TTable).values({ webhookId: input.webhookId }).returning()
       if (!result) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' })
       return result
     }),
 })
 ```
 
-### Procedures
-
-- `baseProcedure` — base procedure, no auth required. Access `ctx.db` and
-  `ctx.repo`.
-
 ### Conventions
 
 - Always validate input with Zod
 - Skip try/catch — keep routes simple
 - Throw `TRPCError` for not-found / internal errors
+- Use `ctx.repo` for complex queries already implemented in
+  `server/utils/repo.ts`
 
 ---
 
@@ -131,39 +221,28 @@ const { $trpc } = useNuxtApp()
 ```
 
 **Always wrap tRPC calls in `useAsyncData`** — for both queries and mutations.
-Provides SSR, caching, and consistent state handling.
 
 ### Queries
 
 ```typescript
-// Basic query
-const { data, refresh, status } = await useAsyncData('processes',
-  () => $trpc.process.list.query())
+const { data, refresh, status } = await useAsyncData('key',
+  () => $trpc.webhook.list.query({ webhookId }))
 
-// With params (include in cache key)
-const processId = 'uuid-here'
-const { data: files } = await useAsyncData(`files-${processId}`,
-  () => $trpc.files.list.query({ processId }))
-
-// Parallel queries
-const [{ data: files, refresh: refreshFiles },
-       { data: notes, refresh: refreshNotes }] = [
-  await useAsyncData('files', () => $trpc.files.list.query({ processId })),
-  await useAsyncData('notes', () => $trpc.notes.list.query({ processId })),
-]
+// With dynamic params — include params in cache key
+const { data } = await useAsyncData(`requests-${webhookId}`,
+  () => $trpc.webhook.list.query({ webhookId }))
 ```
 
 ### Mutations
 
 ```typescript
-// Deferred mutation (immediate: false)
-const { execute: deleteProcess, status } = await useAsyncData(null,
-  () => $trpc.process.delete.mutate({ id }),
+const { execute: doDelete, status } = await useAsyncData(null,
+  () => $trpc.webhook.delete.mutate({ requestId, webhookId }),
   { immediate: false }
 )
 
 const handleDelete = async () => {
-  await deleteProcess()
+  await doDelete()
   await refresh()
 }
 ```
@@ -180,14 +259,16 @@ must not call the API.
 ```vue
 <script setup lang="ts">
 const { $trpc } = useNuxtApp()
-const { data, refresh } = await useAsyncData('users',
-  () => $trpc.users.list.query())
+const { data, refresh } = await useAsyncData('webhooks',
+  () => $trpc.webhook.list.query({ webhookId }))
 </script>
 
 <template>
-  <TableAdminUsers
-    :items="data || []"
-    @delete="async (id) => { await $trpc.users.delete.mutate({ id }); refresh() }"
+  <ListItemRequest
+    v-for="i in data"
+    :key="i.id"
+    :request="i"
+    @delete="async () => { await $trpc.webhook.delete.mutate({ ... }); refresh() }"
   />
 </template>
 ```
@@ -201,11 +282,11 @@ const { data, refresh } = await useAsyncData('users',
 
 ```vue
 <script setup lang="ts">
-import * as z from "zod"
+import * as z from 'zod'
 
-const schema = z.object({ name: z.string().min(1), email: z.string().email() })
+const schema = z.object({ name: z.string().min(1) })
 type Schema = z.output<typeof schema>
-export type FormUserData = Schema
+export type FormWebhookData = Schema
 
 const props = withDefaults(defineProps<{
   defaultValue?: Partial<Schema>
@@ -219,53 +300,13 @@ const emits = defineEmits<{ submit: [e: Schema] }>()
 </script>
 
 <template>
-  <UForm :schema="schema" :state="state"
-    @submit.prevent="(e) => emits('submit', e.data)">
+  <UForm :schema="schema" :state="state" @submit.prevent="(e) => emits('submit', e.data)">
     <UFormField name="name" label="Name">
       <UInput v-model="state.name" class="w-full" />
     </UFormField>
-    <UButton type="submit" label="Submit" />
+    <UButton type="submit" label="Save" />
   </UForm>
 </template>
-```
-
-### Table Components
-
-- Type items via `AppRouterOutputs["..."]["..."][number]`
-- Props: `items`, `filter?`, `loading?`
-- Emit: `select-item`, `delete-item`, `update-item`, `refresh-table`
-- Use `id: 'id' as const` per column; build `MAP_ID_TO_LABEL` from columns
-- Use `v-model:column-visibility` and `useTemplateRef('table')`
-- Use `#columnId-cell` slots for custom content
-
-```vue
-<script setup lang="ts">
-import type { AppRouterOutputs } from "@@/server/trpc"
-import type { TableColumn } from "@nuxt/ui"
-
-type Item = AppRouterOutputs["node"]["list"][number]
-type Keys = keyof Item | "actions"
-
-const props = defineProps<{ items: Item[]; filter?: string; loading?: boolean }>()
-const emit = defineEmits<{
-  "select-item": [item: Item]
-  "delete-item": [item: Item]
-  "update-item": [item: Item]
-  "refresh-table": []
-}>()
-
-const columns: TableColumn<Item>[] = [
-  { id: "id" as const, accessorKey: "id", header: "ID" },
-  { id: "actions" as const, header: "Actions" },
-]
-
-const MAP_ID_TO_LABEL: Record<Keys, string> = columns.reduce(
-  (a, c) => ({ ...a, [c.id as Keys]: c.header }), {} as Record<Keys, string>
-)
-
-const visible: Ref<Record<Keys, boolean>> = ref({ id: true, actions: true })
-const table = useTemplateRef("table")
-</script>
 ```
 
 ---
@@ -274,41 +315,19 @@ const table = useTemplateRef("table")
 
 ### Semantic Colors
 
-| Token     | Default | Use               |
-| --------- | ------- | ----------------- |
-| primary   | green   | CTAs, brand       |
-| secondary | blue    | Alt actions       |
-| success   | green   | Confirmations     |
-| info      | blue    | Neutral alerts    |
-| warning   | yellow  | Attention         |
-| error     | red     | Destructive       |
-| neutral   | slate   | Backgrounds, text |
+| Token     | Use               |
+| --------- | ----------------- |
+| primary   | CTAs, brand       |
+| secondary | Alt actions       |
+| success   | Confirmations     |
+| info      | Neutral alerts    |
+| warning   | Attention         |
+| error     | Destructive       |
+| neutral   | Backgrounds, text |
 
 ```vue
+<UButton color="error">Delete</UButton>
 <UButton color="success">Save</UButton>
-```
-
-### Configuration
-
-```css
-/* main.css */
-@import "tailwindcss";
-@import "@nuxt/ui";
-
-@theme {
-  --font-sans: 'Public Sans', system-ui, sans-serif;
-}
-
-@theme static {
-  --color-brand-500: #ef4444; /* define shades 50-950 */
-}
-```
-
-```typescript
-// app.config.ts
-export default defineAppConfig({
-  ui: { colors: { primary: 'brand', secondary: 'blue', neutral: 'zinc' } }
-})
 ```
 
 ---
@@ -316,7 +335,7 @@ export default defineAppConfig({
 ## Testing
 
 Tests live in `tests/nuxt/` and use `@nuxt/test-utils` with vitest. They spin up
-a real dev server and hit it over HTTP — no mocking.
+a real dev server — no mocking.
 
 ### Setup
 
@@ -328,7 +347,7 @@ import type { AppRouter } from '../../server/trpc'
 
 const PORT = Math.floor(Math.random() * (3999 - 3100 + 1)) + 3100
 
-describe('http: /api/h/[id]', async () => {
+describe('my feature', async () => {
   await setup({ dev: true, port: PORT })
 
   const trpc = createTRPCClient<AppRouter>({
@@ -337,7 +356,7 @@ describe('http: /api/h/[id]', async () => {
 })
 ```
 
-### Pattern: create via tRPC, assert via HTTP fetch
+### Pattern: create via tRPC, assert via HTTP
 
 ```typescript
 it('returns configured status', async () => {
@@ -348,20 +367,15 @@ it('returns configured status', async () => {
 })
 ```
 
-### Pattern: shared fixture with beforeAll
+### Pattern: shared fixture
 
 ```typescript
-describe('default webhook config', () => {
+describe('default config', () => {
   let id: string
-
-  beforeAll(async () => {
-    const webhook = await trpc.webhook.create.mutate()
-    id = webhook.id
-  })
+  beforeAll(async () => { ({ id } = await trpc.webhook.create.mutate()) })
 
   it('returns 200', async () => {
-    const result = await fetch(`/api/h/${id}`)
-    expect(result.status).toBe(200)
+    expect((await fetch(`/api/h/${id}`)).status).toBe(200)
   })
 })
 ```
@@ -370,22 +384,18 @@ describe('default webhook config', () => {
 
 ```typescript
 it.each(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] as const)(
-  'accepts %s requests',
+  'accepts %s',
   async (method) => {
-    const result = await fetch(`/api/h/${id}`, { method })
-    expect(result.status).toBe(200)
+    expect((await fetch(`/api/h/${id}`, { method })).status).toBe(200)
   },
 )
 ```
 
 ### Notes
 
-- `event.context.repo` is set by `server/middleware/context.ts` — it must be
-  available for DB writes inside `event.waitUntil`. The Wrangler/Miniflare
-  binding proxy fails in the test environment (logged as `[DB] Error inserting
-  request`), but this doesn't fail tests since the response is already sent.
-- Always use a random port per test file to avoid conflicts when running in
-  parallel.
+- Always use a random port per test file to avoid conflicts
+- `[DB] Error inserting request` in test output is expected — Wrangler binding
+  proxy fails in test env but doesn't affect test results
 
 ---
 
@@ -395,3 +405,5 @@ it.each(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] as const)(
 - [tRPC](https://trpc.io/docs) · [tRPC-Nuxt](https://trpc-nuxt.pages.dev/setup/)
 - [Drizzle ORM](https://orm.drizzle.team/docs/overview) · [Cloudflare
   D1](https://developers.cloudflare.com/d1/)
+- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/commands/)
+- [Better Auth](https://www.better-auth.com/docs)
