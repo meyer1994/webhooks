@@ -60,7 +60,8 @@ app/pages/
 
 ```bash
 pnpm install
-pnpm run db:migrate   # applies migrations to local D1 (creates .wrangler/state/)
+cp .env.example .env   # only needed for drizzle-kit studio/push/pull
+pnpm run db:migrate    # applies migrations to local D1 (creates .wrangler/state/)
 pnpm run dev
 ```
 
@@ -72,13 +73,7 @@ The app runs at `http://localhost:3000`. The local D1 database is persisted in
 #### Changing the schema
 
 1. Edit `server/db/schema.ts`
-2. Generate a migration:
-   ```bash
-   # requires DATABASE_URL pointing to a local SQLite file for introspection
-   DATABASE_URL=file:.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<db-file>.sqlite \
-     pnpm run db:generate
-   ```
-   Or use the dotenv shorthand if you have a `.env` with `DATABASE_URL` set:
+2. Generate a migration — drizzle-kit reads the TypeScript schema directly, no DB connection needed:
    ```bash
    pnpm run db:generate
    ```

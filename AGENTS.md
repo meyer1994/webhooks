@@ -49,12 +49,11 @@ pnpm clean        # remove .output .wrangler .nuxt
 
 ```bash
 pnpm db:generate              # generate migration after schema changes
-pnpm db:migrate               # apply migrations to local D1
+pnpm db:migrate               # apply migrations to local D1 (--local)
+pnpm db:migrate:remote        # apply migrations to production D1 (--remote)
 
 # Direct wrangler D1 commands
 wrangler d1 create <name>                        # create a new D1 database
-wrangler d1 migrations apply <name> --local      # apply migrations locally
-wrangler d1 migrations apply <name> --remote     # apply migrations to production
 wrangler d1 execute <name> --local --command "SELECT * FROM webhooks LIMIT 5"
 ```
 
@@ -64,19 +63,13 @@ wrangler d1 execute <name> --local --command "SELECT * FROM webhooks LIMIT 5"
 # 1. Create D1 database — copy the database_id into wrangler.jsonc
 wrangler d1 create webhooks
 
-# 2. Create R2 bucket (if needed)
-wrangler r2 bucket create <bucket-name>
+# 2. Apply migrations to production
+pnpm db:migrate:remote
 
-# 3. Create KV namespace (if needed)
-wrangler kv namespace create <namespace-name>
-
-# 4. Set secrets (use .dev.vars for local, wrangler secret put for production)
-wrangler secret put SECRET_KEY
-
-# 5. Regenerate TypeScript bindings after changing wrangler.jsonc
+# 3. Regenerate TypeScript bindings after changing wrangler.jsonc
 pnpm cf:types   # runs: wrangler types shared/wrangler.d.ts
 
-# 6. Deploy
+# 4. Deploy
 pnpm cf:deploy  # runs: nuxt build && wrangler --cwd .output deploy
 ```
 
@@ -406,4 +399,3 @@ it.each(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] as const)(
 - [Drizzle ORM](https://orm.drizzle.team/docs/overview) · [Cloudflare
   D1](https://developers.cloudflare.com/d1/)
 - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/commands/)
-- [Better Auth](https://www.better-auth.com/docs)
