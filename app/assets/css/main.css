@@ -3,7 +3,27 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+/* ══════════════════════════════════════════════════════
+   ACCENT COLOR — edit --ah to retheme the entire app
+   142 green | 190 cyan | 220 blue | 270 violet | 30 orange
+   ══════════════════════════════════════════════════════ */
 :root {
+  --ah: 142;   /* accent hue */
+  --ac: 0.20;  /* accent chroma (saturation) */
+
+  /* Overrides Nuxt UI @layer theme — cascade wins without a layer */
+  --ui-color-primary-50:  oklch(97% var(--ac) var(--ah));
+  --ui-color-primary-100: oklch(93% var(--ac) var(--ah));
+  --ui-color-primary-200: oklch(86% var(--ac) var(--ah));
+  --ui-color-primary-300: oklch(78% var(--ac) var(--ah));
+  --ui-color-primary-400: oklch(70% var(--ac) var(--ah));
+  --ui-color-primary-500: oklch(62% var(--ac) var(--ah));
+  --ui-color-primary-600: oklch(52% var(--ac) var(--ah));
+  --ui-color-primary-700: oklch(43% var(--ac) var(--ah));
+  --ui-color-primary-800: oklch(34% var(--ac) var(--ah));
+  --ui-color-primary-900: oklch(27% var(--ac) var(--ah));
+  --ui-color-primary-950: oklch(20% var(--ac) var(--ah));
+
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
 }
