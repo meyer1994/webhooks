@@ -89,10 +89,11 @@ The app runs at `http://localhost:3000`. The local D1 database is persisted in
 
 #### Resetting local state
 
-Delete the Wrangler local D1 state and re-apply migrations from scratch:
+`pnpm clean` removes `.wrangler` along with `.nuxt` and `.output`. Re-apply
+migrations after to get a fresh local database:
 
 ```bash
-rm -rf .wrangler/state
+pnpm run clean
 pnpm run db:migrate
 ```
 
