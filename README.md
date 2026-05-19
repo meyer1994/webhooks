@@ -6,14 +6,15 @@ requests roll in with full headers, body, query params, and Cloudflare metadata.
 
 ## Features
 
-- **Instant endpoints** — create a webhook URL in one click, no account required
+- **Instant endpoints** — URL generated on page load, no account required
 - **Live request log** — polls every 5 seconds, auto-stops after 8 minutes
 - **Configurable responses** — set status code, content type, body, and response
   delay per endpoint
 - **CORS support** — toggle `Access-Control-Allow-*` headers per endpoint
 - **Request inspector** — drill into headers, body, query params, and Cloudflare
   geo/network properties
-- **Stats dashboard** — charts for HTTP methods, geographic origin, network, and
+- **Replay & cURL export** — resend any captured request or copy it as a cURL command
+- **Analytics dashboard** — charts for HTTP methods, geographic origin, network, and
   request timing
 - **Export** — download all captured requests as JSON
 
@@ -41,10 +42,11 @@ server/
   db/schema.ts           # two tables: webhooks + requests
 
 app/pages/
+  index.vue              # landing page — auto-generates a webhook URL on load
   w/[wid].vue            # dashboard — request list with search, export, clear
-  w/[wid]/r/[rid].vue    # request detail — headers, body, query params, CF properties
-  w/[wid]/s.vue          # stats — geo, method, network, timing charts
-  w/[wid]/c.vue          # webhook config — response settings
+  w/[wid]/r/[rid].vue    # request detail — headers, body, query params, CF properties, replay
+  w/[wid]/c.vue          # analytics — geo, method, network, and timing charts
+  w/[wid]/s.vue          # settings — response config (status, body, delay, CORS)
 ```
 
 ## Development
@@ -53,37 +55,26 @@ app/pages/
 
 ```bash
 pnpm install
-cp -v .env.example .env
 pnpm run db:migrate
 pnpm run dev
 ```
 
-### Environment Variables
-
-```env
-DATABASE_URL=file:.data/db.sqlite
-```
-
 ### Commands
 
-| Command                    | Description                                                  |
-| -------------------------- | ------------------------------------------------------------ |
-| `pnpm dev`                 | Start Nuxt dev server                                        |
-| `pnpm lint`                | Run ESLint                                                   |
-| `pnpm lint:fix`            | Auto-fix lint issues                                         |
-| `pnpm typecheck`           | TypeScript type check                                        |
-| `pnpm db:generate`         | Generate Drizzle migration after schema changes              |
-| `pnpm cf:migrate --local`  | Apply migrations to local D1                                 |
-| `pnpm cf:migrate --remote` | Apply migrations to production D1                            |
-| `pnpm cf:types`            | Regenerate Cloudflare binding types (`shared/wrangler.d.ts`) |
-| `pnpm cf:deploy`           | Build and deploy to Cloudflare Workers                       |
-| `pnpm clean`               | Remove `.output`, `.wrangler`, `.nuxt`                       |
-
-### Cloudflare Local Dev (Wrangler)
-
-```bash
-pnpm run cf:dev
-```
+| Command             | Description                                                  |
+| ------------------- | ------------------------------------------------------------ |
+| `pnpm dev`          | Start Nuxt dev server                                        |
+| `pnpm test`         | Run test suite                                               |
+| `pnpm lint`         | Run ESLint                                                   |
+| `pnpm lint:fix`     | Auto-fix lint issues                                         |
+| `pnpm typecheck`    | TypeScript type check                                        |
+| `pnpm preview`      | Preview production build locally                             |
+| `pnpm db:generate`  | Generate Drizzle migration after schema changes              |
+| `pnpm db:migrate`   | Apply migrations to local D1                                 |
+| `pnpm cf:types`     | Regenerate Cloudflare binding types (`shared/wrangler.d.ts`) |
+| `pnpm cf:deploy`    | Build and deploy to Cloudflare Workers                       |
+| `pnpm clean`        | Remove `.output`, `.wrangler`, `.nuxt`                       |
+| `pnpm reset`        | Full clean reinstall + lint + typecheck + build              |
 
 ## Deployment
 
