@@ -225,9 +225,24 @@ function exportToJson() {
 
       <!-- right -->
       <div class="col-span-8">
-        <!-- empty state: no requests yet and nothing selected -->
+        <!-- child route active (request detail, charts, settings) -->
+        <NuxtPage
+          v-if="$route.path !== `/w/${route.params.wid}`"
+          :page-key="r => r.fullPath"
+        />
+
+        <!-- placeholder: requests exist but none selected -->
+        <div
+          v-else-if="data?.length"
+          class="h-full flex flex-col items-center justify-center gap-3 text-gray-600"
+        >
+          <UIcon name="i-lucide-mouse-pointer-click" class="text-4xl" />
+          <span class="text-sm">Select a request to inspect it</span>
+        </div>
+
+        <!-- empty state: no requests yet -->
         <UCard
-          v-if="!$route.params.rid && !data?.length"
+          v-else
           class="h-full"
         >
           <div class="flex flex-col gap-6 py-8 px-4">
@@ -281,10 +296,6 @@ function exportToJson() {
           </div>
         </UCard>
 
-        <NuxtPage
-          v-else
-          :page-key="route => route.fullPath"
-        />
       </div>
     </div>
   </UMain>

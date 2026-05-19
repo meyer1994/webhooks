@@ -23,7 +23,8 @@ const bodySize = computed(() => {
 
 const path = computed(() => {
   try {
-    return new URL(props.request.url).pathname
+    const id = props.request.url.split('/').pop()?.slice(-8) ?? ''
+    return `/h/...${id}`
   }
   catch {
     return props.request.url
@@ -32,13 +33,13 @@ const path = computed(() => {
 
 const ip = computed(() => {
   const addr = props.request.ipAddress ?? ''
-  return addr.length > 15 ? `${addr.slice(0, 13)}…` : addr
+  return addr.length > 15 ? `${addr.slice(0, 13)}...` : addr
 })
 </script>
 
 <template>
   <div
-    class="flex flex-col gap-1 py-2 px-2"
+    class="flex flex-col gap-1 py-2 px-2 border-b border-gray-800"
     :class="{ 'bg-primary-500/10': selected }"
   >
     <!-- Row 1: method + path + ip + delete -->
@@ -57,11 +58,17 @@ const ip = computed(() => {
         :label="request.method"
       />
 
-      <span class="text-xs font-mono text-white truncate flex-1" :title="request.url">
+      <span
+        class="text-xs font-mono text-white truncate flex-1"
+        :title="request.url"
+      >
         {{ path }}
       </span>
 
-      <span class="text-xs font-mono text-gray-500 shrink-0" :title="request.ipAddress ?? ''">
+      <span
+        class="text-xs font-mono text-gray-500 shrink-0"
+        :title="request.ipAddress ?? ''"
+      >
         {{ ip }}
       </span>
 
@@ -80,7 +87,10 @@ const ip = computed(() => {
       <span :title="request.id">#{{ request.id.split('-').pop() }}</span>
       <span>headers: {{ Object.keys(request.headers).length }}</span>
       <span>query: {{ Object.keys(request.queryParams).length }}</span>
-      <FormatBytes v-slot="{ formatted }" :model-value="bodySize">
+      <FormatBytes
+        v-slot="{ formatted }"
+        :model-value="bodySize"
+      >
         <span>{{ formatted }}</span>
       </FormatBytes>
     </div>

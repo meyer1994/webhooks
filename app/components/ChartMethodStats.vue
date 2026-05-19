@@ -58,6 +58,7 @@ const option = computed<EChartsOption>(() => ({
   },
   yAxis: {
     type: 'value',
+    minInterval: 1,
     axisLabel: {
       color: '#6b7280',
     },

@@ -147,6 +147,7 @@ const option = computed<EChartsOption>(() => ({
   },
   yAxis: {
     type: 'value',
+    minInterval: 1,
     splitLine: {
       lineStyle: {
         color: '#374151',
