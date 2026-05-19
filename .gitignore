@@ -3,6 +3,7 @@
 .claude
 .wrangler
 .cursor
+.playwright-mcp
 
 # Logs
 logs

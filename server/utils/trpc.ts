@@ -1,7 +1,8 @@
-import { initTRPC, type AnyRouter } from '@trpc/server'
+import { initTRPC } from '@trpc/server'
 import type { DrizzleD1Database } from 'drizzle-orm/d1'
 import type { H3Event } from 'h3'
 import type * as schema from '../db/schema'
+import { WebhookRepo } from './repo'
 
 export type TRPCContext = {
   event: H3Event
@@ -16,7 +17,7 @@ export const createTRPCContext = async (event: H3Event) => {
   return {
     event,
     db: event.context.db,
-    repo: event.context.repo,
+    repo: new WebhookRepo(event.context.db),
   } satisfies TRPCContext
 }
 
@@ -33,15 +34,3 @@ const t = initTRPC.context<TRPCContext>().create({
 export const createTRPCRouter = t.router
 export const createCallerFactory = t.createCallerFactory
 export const baseProcedure = t.procedure
-
-/**
- * Creates an internal tRPC caller for SSR to bypass HTTP subrequests.
- * @see https://trpc.io/docs/server/server-side-calls
- */
-export const createInternalCaller = async <TRouter extends AnyRouter>(
-  router: TRouter,
-  event: H3Event,
-) => {
-  const context = await createTRPCContext(event)
-  return createCallerFactory(router)(context)
-}
