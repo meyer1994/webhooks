@@ -19,7 +19,7 @@ jobs:
           node-version: 22
           cache: "pnpm"
       - run: pnpm install
-      - run: pnpm run cf:migrate
+      - run: pnpm run db:migrate
       - run: pnpm run test
       - run: pnpm run lint
       - run: pnpm run typecheck
