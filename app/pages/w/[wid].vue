@@ -236,7 +236,10 @@ function exportToJson() {
           v-else-if="data?.length"
           class="h-full flex flex-col items-center justify-center gap-3 text-gray-600"
         >
-          <UIcon name="i-lucide-mouse-pointer-click" class="text-4xl" />
+          <UIcon
+            name="i-lucide-mouse-pointer-click"
+            class="text-4xl"
+          />
           <span class="text-sm">Select a request to inspect it</span>
         </div>
 
@@ -295,7 +298,6 @@ function exportToJson() {
             </div>
           </div>
         </UCard>
-
       </div>
     </div>
   </UMain>
