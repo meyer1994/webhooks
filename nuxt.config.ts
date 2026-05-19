@@ -9,6 +9,12 @@ export default defineNuxtConfig({
     'nuxt-echarts',
   ],
 
+  echarts: {
+    charts: ['BarChart', 'LineChart'],
+    components: ['GridComponent', 'TooltipComponent', 'LegendComponent', 'DatasetComponent', 'TransformComponent'],
+    features: ['UniversalTransition'],
+  },
+
   devtools: {
     enabled: false,
     timeline: {

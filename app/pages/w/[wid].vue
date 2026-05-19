@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { UseClipboard } from '@vueuse/components'
 import * as z from 'zod'
 
 // https://stackoverflow.com/a/54975267
@@ -15,9 +16,9 @@ const schemaQuery = z.object({
 definePageMeta({
   validate: (route) => {
     const r0 = schemaParams.safeParse(route.params)
-    if (!r0.success) throw createError({ statusCode: 400, message: r0.error.message })
+    if (!r0.success) throw createError(r0.error)
     const r1 = schemaQuery.safeParse(route.query)
-    if (!r1.success) throw createError({ statusCode: 400, message: r1.error.message })
+    if (!r1.success) throw createError(r1.error)
     return true
   },
 })
@@ -49,6 +50,12 @@ const updateFilter = useDebounceFn(async (value: string | undefined) => await na
 
 const isClearing = ref(false)
 const isExporting = ref(false)
+
+const requestURL = useRequestURL()
+const endpointUrl = computed(() => `${requestURL.protocol}//${requestURL.host}/api/h/${route.params.wid}`)
+const curlSnippet = computed(() =>
+  `curl -X POST \\\n  ${endpointUrl.value} \\\n  -H "Content-Type: application/json" \\\n  -d '{"hello": "world"}'`,
+)
 
 async function clearAllRequests() {
   isClearing.value = true
@@ -218,7 +225,66 @@ function exportToJson() {
 
       <!-- right -->
       <div class="col-span-8">
-        <NuxtPage :page-key="route => route.fullPath" />
+        <!-- empty state: no requests yet and nothing selected -->
+        <UCard
+          v-if="!$route.params.rid && !data?.length"
+          class="h-full"
+        >
+          <div class="flex flex-col gap-6 py-8 px-4">
+            <div>
+              <p class="text-sm text-gray-400 mb-2">
+                Your endpoint is ready. Send a request to see it here:
+              </p>
+              <UseClipboard
+                v-slot="{ copy, copied }"
+                :source="endpointUrl"
+              >
+                <UInput
+                  :model-value="endpointUrl"
+                  readonly
+                  class="font-mono text-xs"
+                >
+                  <template #trailing>
+                    <UButton
+                      :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'"
+                      color="neutral"
+                      variant="ghost"
+                      size="xs"
+                      @click="copy()"
+                    />
+                  </template>
+                </UInput>
+              </UseClipboard>
+            </div>
+
+            <div>
+              <p class="text-sm text-gray-400 mb-2">
+                Try it with curl:
+              </p>
+              <UseClipboard
+                v-slot="{ copy, copied }"
+                :source="curlSnippet"
+              >
+                <div class="relative">
+                  <pre class="rounded-lg bg-gray-900 border border-gray-800 p-4 text-xs font-mono text-gray-300 overflow-x-auto whitespace-pre-wrap">{{ curlSnippet }}</pre>
+                  <UButton
+                    :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'"
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    class="absolute top-2 right-2"
+                    @click="copy()"
+                  />
+                </div>
+              </UseClipboard>
+            </div>
+          </div>
+        </UCard>
+
+        <NuxtPage
+          v-else
+          :page-key="route => route.fullPath"
+        />
       </div>
     </div>
   </UMain>
