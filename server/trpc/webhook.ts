@@ -23,9 +23,7 @@ export const webhookRouter = createTRPCRouter({
   }),
 
   config: baseProcedure
-    .input(z.object({
-      webhookId: z.uuidv7(),
-    }))
+    .input(z.object({ webhookId: z.uuidv7() }))
     .query(async ({ ctx, input }) => {
       return await ctx.repo.config(input.webhookId)
     }),
@@ -53,14 +51,25 @@ export const webhookRouter = createTRPCRouter({
     .input(
       z.object({
         webhookId: z.uuidv7(),
-        name: z.string().max(255).optional(),
-        allowCors: z.boolean().optional(),
-        responseStatus: z.number().min(100).max(599).optional(),
+        name: z.string()
+          .max(255)
+          .optional(),
+        allowCors: z.boolean()
+          .optional(),
+        responseStatus: z.number()
+          .min(100)
+          .max(599)
+          .optional(),
         responseContentType: z
           .enum(['application/json', 'text/plain', 'text/html', 'application/xml'])
           .optional(),
-        responseBody: z.string().max(1024 * 1024 * 1).optional(),
-        responseDelay: z.number().min(0).max(100).optional(),
+        responseBody: z.string()
+          .max(1024 * 1024 * 1)
+          .optional(),
+        responseDelay: z.number()
+          .min(0)
+          .max(100)
+          .optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

@@ -2,6 +2,7 @@ import type { Logger } from 'drizzle-orm'
 import type { DrizzleD1Database } from 'drizzle-orm/d1'
 import { drizzle } from 'drizzle-orm/d1'
 import * as schema from '../db/schema'
+import { WebhookRepo } from '../utils/repo'
 
 const logger: Logger = {
   logQuery: (query, params) => {
@@ -19,6 +20,7 @@ const logger: Logger = {
 export default defineEventHandler(async (event) => {
   console.info('[middleware.context] Started context creation...')
   event.context.db = drizzle(event.context.cloudflare.env.DB, { schema, logger })
+  event.context.repo = new WebhookRepo(event.context.db)
   console.info('[middleware.context] Finished context creation...')
 })
 
@@ -33,5 +35,6 @@ declare module 'h3' {
     }
 
     db: DrizzleD1Database<typeof schema>
+    repo: WebhookRepo
   }
 }

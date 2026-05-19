@@ -25,12 +25,12 @@ export default defineEventHandler(async (event) => {
   const headers = getRequestHeaders(event) as Record<string, string>
   const ipAddress = headers['cf-connecting-ip'] || headers['x-forwarded-for'] || undefined
   const queryParams = getQuery(event) as Record<string, string>
-  const body = await readRawBody(event, 'utf8')
+  const body = event.method === 'GET' ? undefined : await readRawBody(event, 'utf8')
 
   event.waitUntil(
     (async (): Promise<void> => {
       try {
-        console.log('[DB] Inserting request:', id)
+        console.log('[api.h] Inserting request:', id)
         await event.context.repo.append(params.id, {
           method: event.method,
           url,
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
         })
       }
       catch (error) {
-        console.error(`[DB] Error inserting request: ${id}`, error)
+        console.error(`[api.h] Error inserting request: ${id}`, error)
         throw error
       }
     })(),
